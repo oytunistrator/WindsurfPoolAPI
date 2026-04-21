@@ -1,5 +1,37 @@
 # Changelog
 
+## v2.0.3 (2026-04-22)
+
+### New Features
+
+- **Image upload support** (`src/image.js`, `client.js`, `windsurf.js`)
+  Multimodal requests with `image_url` content blocks are now supported. Images are extracted from OpenAI and Anthropic format content arrays, validated (SSRF protection, 5MB size limit, redirect depth limit), and passed as proto field 6 to Cascade. Vision pipeline is automatically enabled via DEFAULT planner mode when images are present.
+
+- **80+ model name aliases** (`models.js`)
+  - Anthropic official dated names (`claude-3-5-sonnet-20241022`, `claude-sonnet-4-20250514`, etc.)
+  - OpenAI official dated names (`gpt-4o-2024-11-20`, `gpt-4.1-2025-04-14`, etc.)
+  - Cursor-friendly aliases without "claude" keyword (`ws-opus`, `sonnet-4.6`, `opus-4.7-max`, etc.)
+  - Clients like Claude Code, Cursor, and Anthropic SDK can now talk to this API without custom name translation.
+
+- **New models**: `gpt-5.4-none`, `gpt-5.4-high`
+- **`getModelKeysByEnum()`** reverse lookup function for model enum → catalog key resolution
+
+### Bug Fixes
+
+- **Dynamic `maxAttempts`** (`handlers/chat.js`)
+  Retry count now scales with active account pool size (min 3, max 10) instead of a hardcoded 3. Fixes issue where healthy accounts in large pools were never reached because the first 3 accounts were all rate-limited.
+
+- **`kimi-k2` enumValue** corrected from 0 → 323 (enables legacy RawGetChatMessage fallback)
+- **Removed broken `qwen-3-coder`** — cascade server has no routing registered for it; requests would always fail with 'model not found'
+- **`MODEL_TIER_ACCESS.pro`** changed to dynamic getter so models merged from cloud catalog are automatically included in Pro tier entitlements
+
+### Server Improvements
+
+- **`/favicon.ico` → 204** — silences browser console noise when accessing dashboard
+- **Empty messages validation** — both `/v1/chat/completions` and `/v1/messages` now return proper 400 errors for empty message arrays instead of passing them to handlers
+
+---
+
 ## v2.0.2 (2026-04-21)
 
 ### Bug Fixes — CC / SSE Streaming

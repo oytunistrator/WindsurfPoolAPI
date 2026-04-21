@@ -96,8 +96,10 @@ export const MODELS = {
   'gpt-5.3-codex':                  { name: 'gpt-5.3-codex',                  provider: 'openai', enumValue: 0,   modelUid: 'gpt-5-3-codex-medium', credit: 1 },
 
   // GPT-5.4
+  'gpt-5.4-none':                   { name: 'gpt-5.4-none',                   provider: 'openai', enumValue: 0,   modelUid: 'gpt-5-4-none', credit: 0.5 },
   'gpt-5.4-low':                    { name: 'gpt-5.4-low',                    provider: 'openai', enumValue: 0,   modelUid: 'gpt-5-4-low', credit: 1 },
   'gpt-5.4-medium':                 { name: 'gpt-5.4-medium',                 provider: 'openai', enumValue: 0,   modelUid: 'gpt-5-4-medium', credit: 2 },
+  'gpt-5.4-high':                   { name: 'gpt-5.4-high',                   provider: 'openai', enumValue: 0,   modelUid: 'gpt-5-4-high', credit: 4 },
   'gpt-5.4-xhigh':                  { name: 'gpt-5.4-xhigh',                  provider: 'openai', enumValue: 0,   modelUid: 'gpt-5-4-xhigh', credit: 8 },
   'gpt-5.4-mini-low':               { name: 'gpt-5.4-mini-low',               provider: 'openai', enumValue: 0,   modelUid: 'gpt-5-4-mini-low', credit: 1.5 },
   'gpt-5.4-mini-medium':            { name: 'gpt-5.4-mini-medium',            provider: 'openai', enumValue: 0,   modelUid: 'gpt-5-4-mini-medium', credit: 1.5 },
@@ -138,10 +140,13 @@ export const MODELS = {
 
   // ── Qwen ────────────────────────────────────────────────
   'qwen-3':                         { name: 'qwen-3',                         provider: 'alibaba', enumValue: 324, credit: 0.5 },
-  'qwen-3-coder':                   { name: 'qwen-3-coder',                   provider: 'alibaba', enumValue: 325, credit: 0.5 },
+  // qwen-3-coder + qwen-3-coder-fast: exist in binary enum (325/327)
+  // but cascade server doesn't have any routing registered for them —
+  // both enum-only and explicit UIDs fail with 'model not found'.
+  // Removed from catalog until upstream registers them.
 
   // ── Kimi ────────────────────────────────────────────────
-  'kimi-k2':                        { name: 'kimi-k2',                        provider: 'moonshot', enumValue: 0,   modelUid: 'MODEL_KIMI_K2', credit: 0.5 },
+  'kimi-k2':                        { name: 'kimi-k2',                        provider: 'moonshot', enumValue: 323, modelUid: 'MODEL_KIMI_K2', credit: 0.5 },
   'kimi-k2.5':                      { name: 'kimi-k2.5',                      provider: 'moonshot', enumValue: 0,   modelUid: 'kimi-k2-5', credit: 1 },
 
   // ── GLM ─────────────────────────────────────────────────
@@ -190,13 +195,87 @@ _lookup.set('claude-opus-4-7-medium', 'claude-opus-4.7-medium');
 _lookup.set('claude-opus-4-7-high',   'claude-opus-4.7-high');
 _lookup.set('claude-opus-4-7-xhigh',  'claude-opus-4.7-xhigh');
 _lookup.set('claude-opus-4-7-max',    'claude-opus-4.7-max');
+_lookup.set('gpt-5-4-none', 'gpt-5.4-none');
 _lookup.set('gpt-5-4-low', 'gpt-5.4-low');
 _lookup.set('gpt-5-4-medium', 'gpt-5.4-medium');
+_lookup.set('gpt-5-4-high', 'gpt-5.4-high');
 _lookup.set('gpt-5-4-xhigh', 'gpt-5.4-xhigh');
 _lookup.set('gpt-5-4-mini-low', 'gpt-5.4-mini-low');
 _lookup.set('gpt-5-4-mini-medium', 'gpt-5.4-mini-medium');
 _lookup.set('gpt-5-4-mini-high', 'gpt-5.4-mini-high');
 _lookup.set('gpt-5-4-mini-xhigh', 'gpt-5.4-mini-xhigh');
+
+// Anthropic official dated names — Cursor / Claude Code / Anthropic SDK
+// all send these verbatim. Map each to our short key so the same client
+// can talk to this API without a custom-name translation layer.
+const ANTHROPIC_DATED = {
+  'claude-3-5-sonnet-20240620': 'claude-3.5-sonnet',
+  'claude-3-5-sonnet-20241022': 'claude-3.5-sonnet',
+  'claude-3-5-sonnet-latest':   'claude-3.5-sonnet',
+  'claude-3-7-sonnet-20250219': 'claude-3.7-sonnet',
+  'claude-3-7-sonnet-latest':   'claude-3.7-sonnet',
+  'claude-sonnet-4-20250514':   'claude-4-sonnet',
+  'claude-sonnet-4-0':          'claude-4-sonnet',
+  'claude-opus-4-20250514':     'claude-4-opus',
+  'claude-opus-4-0':            'claude-4-opus',
+  'claude-opus-4-1':            'claude-4.1-opus',
+  'claude-opus-4-1-20250805':   'claude-4.1-opus',
+  'claude-sonnet-4-5':          'claude-4.5-sonnet',
+  'claude-sonnet-4-5-20250929': 'claude-4.5-sonnet',
+  'claude-opus-4-5':            'claude-4.5-opus',
+  'claude-opus-4-5-20251101':   'claude-4.5-opus',
+  // Opus 4.7 — resolve common spellings to -medium (default effort)
+  'claude-opus-4-7':            'claude-opus-4.7-medium',
+  'claude-opus-4-7-latest':     'claude-opus-4.7-medium',
+  'claude-opus-4.7':            'claude-opus-4.7-medium',
+  'claude-opus-4.7-thinking':   'claude-opus-4.7-medium',
+};
+for (const [k, v] of Object.entries(ANTHROPIC_DATED)) _lookup.set(k, v);
+
+// OpenAI official dated names — same pattern
+const OPENAI_DATED = {
+  'gpt-4o-2024-11-20': 'gpt-4o',
+  'gpt-4o-2024-08-06': 'gpt-4o',
+  'gpt-4o-2024-05-13': 'gpt-4o',
+  'gpt-4o-mini-2024-07-18': 'gpt-4o-mini',
+  'gpt-4.1-2025-04-14': 'gpt-4.1',
+  'gpt-4.1-mini-2025-04-14': 'gpt-4.1-mini',
+  'gpt-4.1-nano-2025-04-14': 'gpt-4.1-nano',
+  'gpt-5-2025-08-07': 'gpt-5',
+  'gpt-5-pro-2025-10-06': 'gpt-5-high',
+};
+for (const [k, v] of Object.entries(OPENAI_DATED)) _lookup.set(k, v);
+
+// Cursor-friendly aliases — Cursor's client-side whitelist blocks model names
+// containing "claude". These prefixes bypass the filter while resolving to the
+// same Windsurf backend models. Use any of these in Cursor's Custom Model field.
+const CURSOR_ALIASES = {
+  'opus-4.6':              'claude-opus-4.6',
+  'opus-4.6-thinking':     'claude-opus-4.6-thinking',
+  'opus-4-7':              'claude-opus-4.7-medium',
+  'opus-4.7':              'claude-opus-4.7-medium',
+  'opus-4.7-low':          'claude-opus-4.7-low',
+  'opus-4.7-high':         'claude-opus-4.7-high',
+  'opus-4.7-xhigh':       'claude-opus-4.7-xhigh',
+  'opus-4.7-max':          'claude-opus-4.7-max',
+  'sonnet-4.6':            'claude-sonnet-4.6',
+  'sonnet-4.6-thinking':   'claude-sonnet-4.6-thinking',
+  'sonnet-4.6-1m':         'claude-sonnet-4.6-1m',
+  'sonnet-4.5':            'claude-4.5-sonnet',
+  'sonnet-4.5-thinking':   'claude-4.5-sonnet-thinking',
+  'haiku-4.5':             'claude-4.5-haiku',
+  'sonnet-4':              'claude-4-sonnet',
+  'opus-4':                'claude-4-opus',
+  'opus-4.1':              'claude-4.1-opus',
+  'sonnet-3.7':            'claude-3.7-sonnet',
+  'sonnet-3.5':            'claude-3.5-sonnet',
+  'ws-opus':               'claude-opus-4.6',
+  'ws-sonnet':             'claude-sonnet-4.6',
+  'ws-opus-thinking':      'claude-opus-4.6-thinking',
+  'ws-sonnet-thinking':    'claude-sonnet-4.6-thinking',
+  'ws-haiku':              'claude-4.5-haiku',
+};
+for (const [k, v] of Object.entries(CURSOR_ALIASES)) _lookup.set(k, v);
 
 /** Resolve user model name → internal model key. */
 export function resolveModel(name) {
@@ -209,13 +288,32 @@ export function getModelInfo(id) {
   return MODELS[id] || null;
 }
 
+// Reverse map: Model enum number → list of catalog keys (enum may match
+// multiple variants if we ever dupe, but typically 1:1).
+const _enumToKeys = (() => {
+  const m = new Map();
+  for (const [key, info] of Object.entries(MODELS)) {
+    if (info.enumValue && info.enumValue > 0) {
+      const arr = m.get(info.enumValue) || [];
+      arr.push(key);
+      m.set(info.enumValue, arr);
+    }
+  }
+  return m;
+})();
+
+/** Reverse-lookup a Model enum number to our catalog keys. */
+export function getModelKeysByEnum(enumValue) {
+  return _enumToKeys.get(enumValue) || [];
+}
+
 // ─── Tier access ───────────────────────────────────────────
 
 const ALL_MODEL_KEYS = Object.keys(MODELS);
 const FREE_TIER_MODELS = ['gpt-4o-mini', 'gemini-2.5-flash'];
 
 export const MODEL_TIER_ACCESS = {
-  pro: ALL_MODEL_KEYS,
+  get pro() { return Object.keys(MODELS); },
   free: FREE_TIER_MODELS,
   unknown: FREE_TIER_MODELS,
   expired: [],

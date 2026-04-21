@@ -255,7 +255,7 @@ export function buildStartCascadeRequest(apiKey, sessionId) {
  * Field 3: metadata
  * Field 5: cascade_config
  */
-export function buildSendCascadeMessageRequest(apiKey, cascadeId, text, modelEnum, modelUid, sessionId, { toolPreamble } = {}) {
+export function buildSendCascadeMessageRequest(apiKey, cascadeId, text, modelEnum, modelUid, sessionId, { toolPreamble, images } = {}) {
   const parts = [];
 
   // Field 1: cascade_id
@@ -268,13 +268,26 @@ export function buildSendCascadeMessageRequest(apiKey, cascadeId, text, modelEnu
   parts.push(writeMessageField(3, buildMetadata(apiKey, undefined, sessionId)));
 
   // Field 5: cascade_config
-  const cascadeConfig = buildCascadeConfig(modelEnum, modelUid, { toolPreamble });
+  // When images are present, use DEFAULT planner mode (1) instead of NO_TOOL (3)
+  // because NO_TOOL disables the vision pipeline on the Windsurf backend.
+  const cascadeConfig = buildCascadeConfig(modelEnum, modelUid, { toolPreamble, forceDefault: !!images?.length });
   parts.push(writeMessageField(5, cascadeConfig));
+
+  // Field 6: images — repeated ImageData { base64_data=1, mime_type=2 }
+  if (images?.length) {
+    for (const img of images) {
+      const imgMsg = Buffer.concat([
+        writeStringField(1, img.base64),
+        writeStringField(2, img.mimeType || 'image/png'),
+      ]);
+      parts.push(writeMessageField(6, imgMsg));
+    }
+  }
 
   return Buffer.concat(parts);
 }
 
-function buildCascadeConfig(modelEnum, modelUid, { toolPreamble } = {}) {
+function buildCascadeConfig(modelEnum, modelUid, { toolPreamble, forceDefault } = {}) {
   // CascadeConversationalPlannerConfig.planner_mode (field 4) uses
   // codeium_common.ConversationalPlannerMode:
   //   0 UNSPECIFIED  1 DEFAULT  2 READ_ONLY  3 NO_TOOL
@@ -298,7 +311,7 @@ function buildCascadeConfig(modelEnum, modelUid, { toolPreamble } = {}) {
   // put in the user message. The section override replaces that section
   // directly so the model sees our emulated tool definitions at the
   // system-prompt level.
-  const convParts = [writeVarintField(4, 3)]; // planner_mode = NO_TOOL
+  const convParts = [writeVarintField(4, forceDefault ? 1 : 3)]; // DEFAULT(1) for images, NO_TOOL(3) otherwise
 
   // ── System prompt section overrides ──────────────────────────────────
   //

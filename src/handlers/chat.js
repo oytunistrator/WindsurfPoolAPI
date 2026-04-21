@@ -262,7 +262,9 @@ export async function handleChatCompletions(body) {
   // Non-stream: retry with a different account on model-not-available errors
   const tried = [];
   let lastErr = null;
-  const maxAttempts = 3;
+  // Dynamic: try every active account (capped at 10) so a large pool with
+  // many rate-limited accounts can still fall through to a healthy one.
+  const maxAttempts = Math.min(10, Math.max(3, getAccountList().filter(a => a.status === 'active').length));
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let acct = null;
     if (reuseEntry && attempt === 0) {
@@ -567,7 +569,7 @@ function streamResponse(id, created, model, modelKey, messages, cascadeMessages,
       let rolePrinted = false;
       let currentApiKey = null;
       let lastErr = null;
-      const maxAttempts = 3;
+      const maxAttempts = Math.min(10, Math.max(3, getAccountList().filter(a => a.status === 'active').length));
 
       // Accumulate chunks so we can cache a successful response at the end.
       let accText = '';

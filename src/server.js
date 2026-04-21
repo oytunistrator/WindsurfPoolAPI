@@ -66,13 +66,16 @@ async function route(req, res) {
     return json(res, 200, {
       status: 'ok',
       provider: 'WindsurfPoolAPI',
-      version: '2.0.2',
+      version: '2.0.3',
       uptime: Math.round(process.uptime()),
       accounts: counts,
     });
   }
 
-  // ─── Dashboard ─────────────────────────────────────────
+  // ─── Dashboard ─────────────────────────────────────
+  // Silent 204 for favicon — browsers request it from every page; otherwise
+  // the later Bearer-token check produces noise in the dashboard console.
+  if (path === '/favicon.ico') { res.writeHead(204); return res.end(); }
   if (path === '/dashboard' || path === '/dashboard/') {
     try {
       const html = readFileSync(join(__dirname, 'dashboard', 'index.html'));
@@ -191,6 +194,9 @@ async function route(req, res) {
     if (!Array.isArray(body.messages)) {
       return json(res, 400, { error: { message: 'messages must be an array', type: 'invalid_request' } });
     }
+    if (body.messages.length === 0) {
+      return json(res, 400, { error: { message: 'messages must contain at least 1 item', type: 'invalid_request' } });
+    }
 
     body._source = 'POST /v1/chat/completions';
     const result = await handleChatCompletions(body);
@@ -221,6 +227,9 @@ async function route(req, res) {
     let body;
     try { body = JSON.parse(await readBody(req)); } catch {
       return json(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'Invalid JSON' } });
+    }
+    if (!Array.isArray(body.messages) || body.messages.length === 0) {
+      return json(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'messages must be a non-empty array' } });
     }
     const result = await handleMessages(body);
     if (result.stream) {
