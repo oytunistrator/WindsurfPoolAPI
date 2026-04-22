@@ -13,7 +13,7 @@ import { config, log } from '../../config.js';
 import { handleChatCompletions } from '../../handlers/chat.js';
 import { queryLocalLLM } from '../local-llm/ollama.js';
 import { parseAndExecute, getSkillsHelp } from '../skills/index.js';
-import { customCommands, executeCommand, listCommands, addCommand } from '../commands/custom-commands.js';
+import { customCommands, executeCommand, listCommands, addCommand, removeCommand, customCommands as commandsManager } from '../commands/custom-commands.js';
 
 // Dynamic import for node-telegram-bot-api (optional dependency)
 let TelegramBot;
@@ -103,81 +103,100 @@ class TelegramChannel {
 
   /**
    * Initialize default commands in custom commands system
+   * Clears old commands and registers fresh ones on each bot startup
    */
   initializeDefaultCommands() {
+    // List of default command names that should be managed by the bot
+    const defaultCommandNames = ['start', 'reset', 'model', 'local', 'cloud', 'status', 'commands', 'help', 'skills'];
+    
+    // Clear existing default commands first (to ensure fresh templates)
+    log.info('[TELEGRAM] Clearing old default commands...');
+    for (const cmdName of defaultCommandNames) {
+      try {
+        if (customCommands.getCommand(cmdName)) {
+          removeCommand(cmdName);
+          log.info(`[TELEGRAM] Removed old command: /${cmdName}`);
+        }
+      } catch (err) {
+        log.warn(`[TELEGRAM] Could not remove /${cmdName}: ${err.message}`);
+      }
+    }
+
     const defaults = [
       {
         name: 'start',
         description: 'Start the bot and show welcome message',
-        template: 'Welcome to WindsurfPoolAPI Bot!\n\nSend me a message and I\'ll process it through the AI API.\n\nAvailable commands:\n{{commands}}',
+        template: 'Welcome to WindsurfPoolAPI Bot! 🤖\n\nI can help you with:\n• AI Chat (Cloud API or Local LLM)\n• Weather Info 🌤\n• Web Search 🔍\n• Finance Data 📈\n• YouTube Search 🎬\n\nSend me a message or use commands:\n{{commands}}',
         action: 'start',
       },
       {
         name: 'reset',
         description: 'Clear conversation context',
-        template: 'Conversation context cleared.',
+        template: '🗑 Conversation context cleared. Starting fresh!',
         action: 'reset',
       },
       {
         name: 'model',
-        description: 'Switch AI model',
-        template: 'Model set to: {{model}}',
+        description: 'Switch AI model (e.g., gpt-4o-mini, claude-opus-4.6)',
+        template: '🔄 Model set to: {{model}}',
         parameters: [{ name: 'model', required: true, type: 'string' }],
         action: 'setModel',
       },
       {
         name: 'local',
-        description: 'Force use local LLM',
-        template: 'Local LLM mode enabled.',
+        description: 'Force use local LLM (Ollama)',
+        template: '🏠 Local LLM mode enabled. All requests will use Ollama.',
         action: 'setLocal',
       },
       {
         name: 'cloud',
-        description: 'Force use cloud API',
-        template: 'Cloud API mode enabled.',
+        description: 'Force use cloud API (Windsurf)',
+        template: '☁️ Cloud API mode enabled. All requests will use Windsurf API.',
         action: 'setCloud',
       },
       {
         name: 'status',
-        description: 'Check system status',
-        template: '🤖 Current Model: {{model}}\n⚡ Mode: {{mode}}\n💬 Context Length: {{contextLength}} messages\n📡 Bot Status: Online ✅',
+        description: 'Check bot and system status',
+        template: '📊 **Bot Status**\n\n🤖 Model: {{model}}\n⚡ Mode: {{mode}}\n💬 Messages: {{contextLength}}\n📡 Status: Online ✅\n\nUse /skills to see all available skills.',
         action: 'status',
       },
       {
         name: 'commands',
         description: 'List all available commands',
-        template: '📋 **Available Commands:**\n\n{{commandList}}\n\nUse /help <command> for details.',
+        template: '📋 **Available Commands**\n\n{{commandList}}\n\n💡 Tip: Use /help <command> for details.',
         action: 'listCommands',
       },
       {
         name: 'help',
-        description: 'Show help for a command',
-        template: '**/{{command}}**\n{{description}}\n\nUsage: /{{command}} {{params}}',
+        description: 'Show help for a specific command',
+        template: '**Help: /{{command}}**\n\n{{description}}\n\n📝 Usage: /{{command}} {{params}}',
         parameters: [{ name: 'command', required: true, type: 'string' }],
         action: 'help',
       },
       {
         name: 'skills',
-        description: 'List all available skills',
-        template: '{{skillsHelp}}',
+        description: 'List all AI skills (weather, search, finance, youtube)',
+        template: '{{skillsHelp}}\n\n💡 Use these skills anytime by typing:\n/weather Istanbul\n/search latest AI news\n/stock AAPL\n/youtube Node.js tutorial',
         action: 'skills',
       },
     ];
 
+    // Register fresh commands
+    log.info('[TELEGRAM] Registering fresh default commands...');
     for (const cmd of defaults) {
-      if (!customCommands.getCommand(cmd.name)) {
-        try {
-          addCommand(cmd.name, {
-            description: cmd.description,
-            template: cmd.template,
-            parameters: cmd.parameters || [],
-          });
-          log.info(`[TELEGRAM] Registered default command: /${cmd.name}`);
-        } catch (err) {
-          log.warn(`[TELEGRAM] Failed to register /${cmd.name}: ${err.message}`);
-        }
+      try {
+        addCommand(cmd.name, {
+          description: cmd.description,
+          template: cmd.template,
+          parameters: cmd.parameters || [],
+        });
+        log.info(`[TELEGRAM] ✓ Registered: /${cmd.name}`);
+      } catch (err) {
+        log.warn(`[TELEGRAM] ✗ Failed to register /${cmd.name}: ${err.message}`);
       }
     }
+    
+    log.info(`[TELEGRAM] Command initialization complete. Total commands: ${listCommands().length}`);
   }
 
   /**
