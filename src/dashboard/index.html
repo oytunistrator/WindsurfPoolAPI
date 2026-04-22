@@ -936,6 +936,10 @@ tbody tr:hover td { background: var(--surface-2); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="4,10 8,14 4,18"/></svg>
         <span>Bash Executor</span>
       </a>
+      <a href="#aibash" data-panel="aibash">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
+        <span>AI Bash & Project</span>
+      </a>
       <a href="#skills" data-panel="skills">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
         <span>AI Skills</span>
@@ -1740,6 +1744,128 @@ tbody tr:hover td { background: var(--surface-2); }
     </div>
   </section>
 
+  <!-- ════════ AI Bash & Project Generator ════════ -->
+  <section class="panel" id="p-aibash">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">AI Bash & Project Generator</h1>
+        <div class="page-subtitle">AI-powered command generation and project scaffolding</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="App.loadAIBashHistory()">Refresh</button>
+      </div>
+    </div>
+
+    <!-- AI Bash Command Generator -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🤖 AI Bash Command Generator</div>
+          <div class="section-desc">Describe what you want to do, AI generates the command</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label class="field-label">What do you want to do? (Natural language)</label>
+          <textarea id="ai-bash-prompt" class="input" rows="3" placeholder="Show me disk usage of all directories in /home" onkeydown="if(event.key==='Enter' && event.ctrlKey)App.generateAIBash()"></textarea>
+        </div>
+        <div class="field-row-actions" style="margin-top:12px">
+          <button class="btn btn-primary" onclick="App.generateAIBash()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
+            Generate Command
+          </button>
+        </div>
+        
+        <!-- Generated Command Display -->
+        <div id="ai-bash-generated" style="margin-top:16px;display:none">
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;font-weight:500">Generated Command</div>
+            <pre id="ai-bash-command" style="margin:0;background:var(--surface);padding:12px;border-radius:6px;font-family:monospace;white-space:pre-wrap;word-break:break-word"></pre>
+            <div style="margin-top:16px;display:flex;gap:12px">
+              <button class="btn btn-primary" onclick="App.executeAIBash()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                Execute Now
+              </button>
+              <button class="btn btn-outline" onclick="App.copyAIBash()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy to Clipboard
+              </button>
+              <button class="btn btn-outline" onclick="App.clearAIBash()">Clear</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Execution Result -->
+        <div id="ai-bash-result" style="margin-top:16px"></div>
+      </div>
+    </div>
+
+    <!-- AI Project Generator -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📁 AI Project Generator</div>
+          <div class="section-desc">Generate project structure with AI</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field" style="flex:2">
+            <label class="field-label">Project Description</label>
+            <input id="ai-project-desc" class="input" placeholder="Express.js API with MongoDB, authentication, and user routes" onkeydown="if(event.key==='Enter')App.generateAIProject()">
+          </div>
+          <div class="field">
+            <label class="field-label">Workspace</label>
+            <input id="ai-project-workspace" class="input mono" value="./workspace" placeholder="./workspace">
+          </div>
+          <div class="field">
+            <label class="field-label">Project Name</label>
+            <input id="ai-project-name" class="input" placeholder="my-api-project">
+          </div>
+        </div>
+        <div class="field-row-actions" style="margin-top:12px">
+          <button class="btn btn-primary" onclick="App.generateAIProject()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            Generate Project
+          </button>
+        </div>
+        
+        <!-- Project Preview -->
+        <div id="ai-project-preview" style="margin-top:16px;display:none">
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;font-weight:500">Project Structure</div>
+            <pre id="ai-project-structure" style="margin:0;background:var(--surface);padding:12px;border-radius:6px;font-family:monospace;white-space:pre-wrap;max-height:300px;overflow:auto"></pre>
+            <div style="margin-top:16px;display:flex;gap:12px">
+              <button class="btn btn-primary" onclick="App.createAIProject()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Create Project
+              </button>
+              <button class="btn btn-outline" onclick="App.clearAIProject()">Clear</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Project Result -->
+        <div id="ai-project-result" style="margin-top:16px"></div>
+      </div>
+    </div>
+
+    <!-- AI Bash History -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📜 AI Bash History</div>
+          <div class="section-desc">Recent AI-generated commands and their results</div>
+        </div>
+      </div>
+      <div class="section-body tight">
+        <div id="ai-bash-history-container">
+          <div class="empty-state">No AI commands generated yet</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ════════ AI Skills ════════ -->
   <section class="panel" id="p-skills">
     <div class="page-header">
@@ -1958,7 +2084,7 @@ const App = {
       logs: 'loadLogs', stats: 'loadStats', bans: 'loadBans',
       experimental: 'loadExperimental',
       telegram: 'loadTelegram', ollama: 'loadOllama',
-      commands: 'loadCommands', bash: 'loadBash',
+      commands: 'loadCommands', bash: 'loadBash', aibash: 'loadAIBash',
       skills: 'loadSkills',
     };
     if (loaders[panel]) this[loaders[panel]]();
@@ -3743,6 +3869,202 @@ const App = {
     } catch (err) {
       this.toast('Failed to clear history: ' + err.message, 'error');
     }
+  },
+
+  // ═══ AI Bash & Project Generator Functions ═══
+
+  // ─── AI Bash Command Generator ─────────────────
+  async loadAIBash() {
+    // Load any stored history from localStorage
+    this.loadAIBashHistory();
+  },
+
+  async generateAIBash() {
+    const prompt = document.getElementById('ai-bash-prompt').value.trim();
+    if (!prompt) return this.toast('Enter a description of what you want to do', 'warn');
+
+    this.toast('🤖 AI is generating command...', 'info');
+    document.getElementById('ai-bash-generated').style.display = 'none';
+    document.getElementById('ai-bash-result').innerHTML = '<div class="text-sm text-muted">Generating...</div>';
+
+    try {
+      const result = await this.api('POST', '/system/ai/generate-bash', { prompt });
+      
+      if (result.success && result.command) {
+        document.getElementById('ai-bash-command').textContent = result.command;
+        document.getElementById('ai-bash-generated').style.display = 'block';
+        document.getElementById('ai-bash-result').innerHTML = '';
+        this.toast('✅ Command generated', 'success');
+      } else {
+        document.getElementById('ai-bash-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Failed to generate command: ${result.error || 'Unknown error'}</div>`;
+      }
+    } catch (err) {
+      document.getElementById('ai-bash-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
+    }
+  },
+
+  async executeAIBash() {
+    const command = document.getElementById('ai-bash-command').textContent.trim();
+    if (!command) return this.toast('No command to execute', 'warn');
+
+    if (!confirm(`Execute this command?\n\n${command}`)) return;
+
+    document.getElementById('ai-bash-result').innerHTML = '<div class="text-sm text-muted">Executing...</div>';
+
+    try {
+      const result = await this.api('POST', '/system/bash/execute', { command, timeout: 30000 });
+      
+      let html = '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:12px">';
+      html += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Result</div>`;
+      
+      if (result.success) {
+        html += `<div style="margin-bottom:8px"><span class="badge ${result.exitCode === 0 ? 'success' : 'warn'}">Exit: ${result.exitCode}</span> <span class="text-sm text-muted">${result.duration}ms</span></div>`;
+        
+        if (result.stdout) {
+          html += `<div style="margin-top:8px"><div style="font-size:11px;color:var(--success);margin-bottom:4px">STDOUT</div><pre style="background:var(--surface);padding:8px;border-radius:4px;font-size:12px;max-height:200px;overflow:auto">${this.esc(result.stdout)}</pre></div>`;
+        }
+        if (result.stderr) {
+          html += `<div style="margin-top:8px"><div style="font-size:11px;color:var(--error);margin-bottom:4px">STDERR</div><pre style="background:var(--surface);padding:8px;border-radius:4px;font-size:12px;max-height:200px;overflow:auto">${this.esc(result.stderr)}</pre></div>`;
+        }
+        
+        // Add to history
+        this.addToAIBashHistory(command, result);
+      } else {
+        html += `<div style="color:var(--error)">Error: ${result.error}</div>`;
+      }
+      
+      html += '</div>';
+      document.getElementById('ai-bash-result').innerHTML = html;
+    } catch (err) {
+      document.getElementById('ai-bash-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Execution error: ${err.message}</div>`;
+    }
+  },
+
+  copyAIBash() {
+    const command = document.getElementById('ai-bash-command').textContent.trim();
+    if (!command) return;
+    navigator.clipboard.writeText(command).then(() => this.toast('Command copied to clipboard'));
+  },
+
+  clearAIBash() {
+    document.getElementById('ai-bash-prompt').value = '';
+    document.getElementById('ai-bash-generated').style.display = 'none';
+    document.getElementById('ai-bash-result').innerHTML = '';
+  },
+
+  // ─── AI Project Generator ─────────────────
+  async generateAIProject() {
+    const desc = document.getElementById('ai-project-desc').value.trim();
+    const workspace = document.getElementById('ai-project-workspace').value.trim() || './workspace';
+    const name = document.getElementById('ai-project-name').value.trim();
+
+    if (!desc) return this.toast('Enter project description', 'warn');
+    if (!name) return this.toast('Enter project name', 'warn');
+
+    this.toast('🤖 AI is generating project structure...', 'info');
+    document.getElementById('ai-project-preview').style.display = 'none';
+    document.getElementById('ai-project-result').innerHTML = '<div class="text-sm text-muted">Generating...</div>';
+
+    try {
+      const result = await this.api('POST', '/system/ai/generate-project', { description: desc, workspace, name });
+      
+      if (result.success && result.structure) {
+        document.getElementById('ai-project-structure').textContent = result.structure;
+        document.getElementById('ai-project-preview').style.display = 'block';
+        document.getElementById('ai-project-result').innerHTML = '';
+        this.toast('✅ Project structure generated', 'success');
+      } else {
+        document.getElementById('ai-project-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Failed to generate project: ${result.error || 'Unknown error'}</div>`;
+      }
+    } catch (err) {
+      document.getElementById('ai-project-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
+    }
+  },
+
+  async createAIProject() {
+    const desc = document.getElementById('ai-project-desc').value.trim();
+    const workspace = document.getElementById('ai-project-workspace').value.trim() || './workspace';
+    const name = document.getElementById('ai-project-name').value.trim();
+
+    if (!confirm(`Create project "${name}" in ${workspace}?`)) return;
+
+    document.getElementById('ai-project-result').innerHTML = '<div class="text-sm text-muted">Creating project...</div>';
+
+    try {
+      const result = await this.api('POST', '/system/ai/create-project', { description: desc, workspace, name });
+      
+      if (result.success) {
+        let html = '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:12px">';
+        html += `<div style="font-size:12px;color:var(--success);margin-bottom:8px">✅ Project Created Successfully</div>`;
+        html += `<div style="font-size:13px"><strong>Location:</strong> ${this.esc(result.projectPath)}</div>`;
+        if (result.files && result.files.length > 0) {
+          html += `<div style="margin-top:8px;font-size:12px"><strong>Created files:</strong><ul style="margin:4px 0;padding-left:20px">${result.files.map(f => `<li>${this.esc(f)}</li>`).join('')}</ul></div>`;
+        }
+        html += '</div>';
+        document.getElementById('ai-project-result').innerHTML = html;
+        this.toast('Project created successfully', 'success');
+      } else {
+        document.getElementById('ai-project-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Failed to create project: ${result.error}</div>`;
+      }
+    } catch (err) {
+      document.getElementById('ai-project-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
+    }
+  },
+
+  clearAIProject() {
+    document.getElementById('ai-project-desc').value = '';
+    document.getElementById('ai-project-name').value = '';
+    document.getElementById('ai-project-preview').style.display = 'none';
+    document.getElementById('ai-project-result').innerHTML = '';
+  },
+
+  // ─── AI Bash History ─────────────────
+  loadAIBashHistory() {
+    const container = document.getElementById('ai-bash-history-container');
+    const history = JSON.parse(localStorage.getItem('ai-bash-history') || '[]');
+    
+    if (history.length === 0) {
+      container.innerHTML = '<div class="empty-state">No AI commands executed yet</div>';
+      return;
+    }
+
+    container.innerHTML = history.slice(-20).reverse().map((item, idx) => `
+      <div style="margin-bottom:12px;padding:12px;background:var(--surface-2);border-radius:8px;border-left:3px solid ${item.exitCode === 0 ? 'var(--success)' : 'var(--warn)'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <code style="font-size:13px;background:var(--surface);padding:4px 8px;border-radius:4px">${this.esc(item.command)}</code>
+          <span class="badge ${item.exitCode === 0 ? 'success' : 'warn'}" style="font-size:11px">${item.exitCode === 0 ? '✓' : '✗'} ${item.exitCode}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted)">${new Date(item.timestamp).toLocaleString()} • ${item.duration}ms</div>
+        ${item.stdout ? `<pre style="margin-top:8px;background:var(--surface);padding:8px;border-radius:4px;font-size:11px;max-height:100px;overflow:auto">${this.esc(item.stdout.substring(0, 200))}</pre>` : ''}
+      </div>
+    `).join('');
+  },
+
+  addToAIBashHistory(command, result) {
+    const history = JSON.parse(localStorage.getItem('ai-bash-history') || '[]');
+    history.push({
+      command,
+      exitCode: result.exitCode,
+      duration: result.duration,
+      stdout: result.stdout?.substring(0, 500),
+      stderr: result.stderr?.substring(0, 500),
+      timestamp: new Date().toISOString(),
+    });
+    // Keep only last 50
+    if (history.length > 50) history.shift();
+    localStorage.setItem('ai-bash-history', JSON.stringify(history));
+    this.loadAIBashHistory();
+  },
+
+  _fmtBytes(b) {
+    if (!b) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let i = 0;
+    while (b >= 1024 && i < units.length - 1) {
+      b /= 1024;
+      i++;
+    }
+    return b.toFixed(1) + ' ' + units[i];
   },
 };
 
