@@ -60,6 +60,10 @@ async function route(req, res) {
   const { method } = req;
   const path = req.url.split('?')[0];
 
+  // Debug logging for all incoming requests
+  const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  log.debug(`[REQUEST] ${method} ${path} from ${clientIp}`);
+
   if (method === 'OPTIONS') return json(res, 204, '');
   if (path === '/health') {
     const counts = getAccountCount();

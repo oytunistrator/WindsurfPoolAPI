@@ -652,6 +652,9 @@ export async function handleMessages(anthropicBody) {
   const inEffort = anthropicBody.output_config?.effort || anthropicBody.effort || null;
   log.info(`Messages: anthropic→openai model=${anthropicBody.model}${inEffort ? ` effort=${inEffort}` : ''} → ${openaiBody.model} stream=${openaiBody.stream} msgs=${openaiBody.messages.length} tools=${openaiBody.tools?.length || 0}`);
 
+  // Debug logging for incoming request
+  log.debug(`[MESSAGES REQUEST] model=${anthropicBody.model} stream=${openaiBody.stream} msgs=${openaiBody.messages.length} tools=${openaiBody.tools?.length || 0}`);
+
   // Tag source for the stats recorder so /v1/messages traffic shows up as its
   // own API bucket instead of being merged with /v1/chat/completions.
   openaiBody._source = 'POST /v1/messages';

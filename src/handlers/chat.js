@@ -145,6 +145,16 @@ export async function handleChatCompletions(body) {
     tool_choice,
   } = body;
 
+  // Debug: log incoming request details (truncate for privacy)
+  const debugBody = {
+    model: reqModel,
+    messageCount: messages?.length,
+    stream,
+    max_tokens,
+    hasTools: !!tools?.length,
+  };
+  log.debug(`[CHAT REQUEST] ${JSON.stringify(debugBody)}`);
+
   const modelKey = resolveModel(reqModel || config.defaultModel);
   const modelInfo = getModelInfo(modelKey);
   const displayModel = modelInfo?.name || reqModel || config.defaultModel;
@@ -482,7 +492,13 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
       model, success: false, durationMs: Date.now() - startTime,
       accountId: apiKey, source, credit: 0, tokens: null,
     });
-    log.error('Chat error:', err.message);
+    // Log upstream errors with full details for debugging
+    const isContentPolicy = /content policy|blocked|sensitive|unsafe/i.test(err.message);
+    if (isContentPolicy) {
+      log.error(`[UPSTREAM CONTENT POLICY] model=${model} account=${apiKey?.slice(0, 8)}... error="${err.message}"`);
+    } else {
+      log.error('Chat error:', err.message);
+    }
     // Rate limits → 429 with Retry-After; model errors → 403; others → 502
     if (isRateLimit) {
       const rl = isAllRateLimited(modelKey);
@@ -802,7 +818,12 @@ function streamResponse(id, created, model, modelKey, messages, cascadeMessages,
         }
 
         // All attempts failed
-        log.error('Stream error after retries:', lastErr?.message);
+        const isContentPolicyStream = /content policy|blocked|sensitive|unsafe/i.test(lastErr?.message || '');
+        if (isContentPolicyStream) {
+          log.error(`[UPSTREAM CONTENT POLICY] model=${model} account=${currentApiKey?.slice(0, 8)}... error="${lastErr?.message}"`);
+        } else {
+          log.error('Stream error after retries:', lastErr?.message);
+        }
         recordRequest({
           model, success: false, durationMs: Date.now() - startTime,
           accountId: currentApiKey, source, credit: 0, tokens: null,
