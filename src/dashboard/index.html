@@ -1749,6 +1749,8 @@ const App = {
       accounts: 'loadAccounts', models: 'loadModels', proxy: 'loadProxy',
       logs: 'loadLogs', stats: 'loadStats', bans: 'loadBans',
       experimental: 'loadExperimental',
+      telegram: 'loadTelegram', ollama: 'loadOllama',
+      commands: 'loadCommands', bash: 'loadBash',
     };
     if (loaders[panel]) this[loaders[panel]]();
   },
@@ -3012,6 +3014,9 @@ const App = {
         </div>`;
       
       // Chat list placeholder - would need additional API endpoint for detailed chat info
+      
+      // Auto-refresh every 5 seconds when on this panel
+      this.poll('telegram', () => this.loadTelegram(), 5000);
     } catch (err) {
       this.toast('Failed to load Telegram status: ' + err.message, 'error');
     }
@@ -3046,6 +3051,9 @@ const App = {
           <td>${new Date(m.modified).toLocaleString()}</td></tr>`).join('') 
           || '<tr class="empty-row"><td colspan="3">No models</td></tr>';
       }
+      
+      // Auto-refresh every 10 seconds
+      this.poll('ollama', () => this.loadOllama(), 10000);
     } catch (err) {
       this.toast('Failed to load Ollama status: ' + err.message, 'error');
     }
@@ -3091,6 +3099,9 @@ const App = {
             <button class="btn btn-error btn-xs" onclick="App.deleteCommand('${c.name}')">Delete</button>
           </td>
         </tr>`).join('') || '<tr class="empty-row"><td colspan="4">No commands defined</td></tr>';
+      
+      // Auto-refresh every 5 seconds
+      this.poll('commands', () => this.loadCommands(), 5000);
     } catch (err) {
       this.toast('Failed to load commands: ' + err.message, 'error');
     }
@@ -3156,6 +3167,9 @@ const App = {
           <td>${new Date(h.timestamp).toLocaleString()}</td>
           <td class="mono text-sm">${this.esc(h.stdout?.slice(0, 60) || h.stderr?.slice(0, 60) || '-')}...</td>
         </tr>`).join('') || '<tr class="empty-row"><td colspan="5">No commands executed</td></tr>';
+      
+      // Auto-refresh every 3 seconds for live history updates
+      this.poll('bash', () => this.loadBash(), 3000);
     } catch (err) {
       this.toast('Failed to load bash status: ' + err.message, 'error');
     }
