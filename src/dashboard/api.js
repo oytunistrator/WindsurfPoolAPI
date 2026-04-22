@@ -24,6 +24,13 @@ import { MODELS, MODEL_TIER_ACCESS as _TIER_TABLE, getTierModels as _getTierMode
 import { windsurfLogin, refreshFirebaseToken, reRegisterWithCodeium } from './windsurf-login.js';
 import { getModelAccessConfig, setModelAccessMode, setModelAccessList, addModelToList, removeModelFromList } from './model-access.js';
 import { checkMessageRateLimit } from '../windsurf-api.js';
+import {
+  getSystemStatus, getTelegramStatus, getOllamaStatus,
+  listOllamaModels, pullOllamaModel, checkOllamaHealth,
+  addCommand, removeCommand, listCommands, getCommand, executeCommand,
+  executeBash, getBashHistory, getBashStats, clearBashHistory,
+  setWorkingDir, getWorkingDir,
+} from '../system/index.js';
 
 function json(res, status, body) {
   const data = JSON.stringify(body);
@@ -534,6 +541,148 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
     } catch (err) {
       return json(res, 400, { error: err.message });
     }
+  }
+
+  // ─── System ─────────────────────────────────────────────
+  // GET /system/status - Overall system status
+  if (subpath === '/system/status' && method === 'GET') {
+    return json(res, 200, { success: true, status: getSystemStatus() });
+  }
+
+  // ─── Telegram ─────────────────────────────────────────────
+  // GET /system/telegram/status
+  if (subpath === '/system/telegram/status' && method === 'GET') {
+    return json(res, 200, { success: true, status: getTelegramStatus() });
+  }
+
+  // ─── Ollama / Local LLM ───────────────────────────────────
+  // GET /system/ollama/status
+  if (subpath === '/system/ollama/status' && method === 'GET') {
+    const health = await checkOllamaHealth();
+    return json(res, 200, { success: true, ...health, config: getOllamaStatus() });
+  }
+
+  // GET /system/ollama/models
+  if (subpath === '/system/ollama/models' && method === 'GET') {
+    try {
+      const models = await listOllamaModels();
+      return json(res, 200, { success: true, models });
+    } catch (err) {
+      return json(res, 503, { error: err.message });
+    }
+  }
+
+  // POST /system/ollama/pull - Pull a model
+  if (subpath === '/system/ollama/pull' && method === 'POST') {
+    if (!body.model) return json(res, 400, { error: 'model is required' });
+    try {
+      const result = await pullOllamaModel(body.model);
+      return json(res, 200, { success: true, ...result });
+    } catch (err) {
+      return json(res, 500, { error: err.message });
+    }
+  }
+
+  // ─── Custom Commands ──────────────────────────────────────
+  // GET /system/commands - List all commands
+  if (subpath === '/system/commands' && method === 'GET') {
+    return json(res, 200, { success: true, commands: listCommands() });
+  }
+
+  // POST /system/commands - Add a command
+  if (subpath === '/system/commands' && method === 'POST') {
+    if (!body.name || !body.template) {
+      return json(res, 400, { error: 'name and template are required' });
+    }
+    try {
+      addCommand(body.name, {
+        description: body.description,
+        template: body.template,
+        parameters: body.parameters,
+      });
+      return json(res, 200, { success: true, name: body.name });
+    } catch (err) {
+      return json(res, 400, { error: err.message });
+    }
+  }
+
+  // DELETE /system/commands/:name - Remove a command
+  const cmdDelete = subpath.match(/^\/system\/commands\/([^/]+)$/);
+  if (cmdDelete && method === 'DELETE') {
+    const removed = removeCommand(cmdDelete[1]);
+    return json(res, removed ? 200 : 404, { success: removed });
+  }
+
+  // GET /system/commands/:name - Get command details
+  const cmdGet = subpath.match(/^\/system\/commands\/([^/]+)$/);
+  if (cmdGet && method === 'GET') {
+    const cmd = getCommand(cmdGet[1]);
+    if (!cmd) return json(res, 404, { error: 'Command not found' });
+    return json(res, 200, { success: true, name: cmdGet[1], ...cmd });
+  }
+
+  // POST /system/commands/:name/execute - Execute a command
+  const cmdExec = subpath.match(/^\/system\/commands\/([^/]+)\/execute$/);
+  if (cmdExec && method === 'POST') {
+    try {
+      const result = executeCommand(cmdExec[1], body.args || {});
+      return json(res, 200, { success: true, result });
+    } catch (err) {
+      return json(res, 400, { error: err.message });
+    }
+  }
+
+  // ─── Bash Commands ──────────────────────────────────────
+  // GET /system/bash/status
+  if (subpath === '/system/bash/status' && method === 'GET') {
+    return json(res, 200, { success: true, ...getBashStatus() });
+  }
+
+  // GET /system/bash/history
+  if (subpath === '/system/bash/history' && method === 'GET') {
+    const limit = Math.min(1000, parseInt(body?.limit || '100', 10));
+    const history = getBashHistory(limit, body?.filter || {});
+    return json(res, 200, { success: true, history });
+  }
+
+  // GET /system/bash/stats
+  if (subpath === '/system/bash/stats' && method === 'GET') {
+    return json(res, 200, { success: true, stats: getBashStats() });
+  }
+
+  // POST /system/bash/execute - Execute a bash command
+  if (subpath === '/system/bash/execute' && method === 'POST') {
+    if (!body.command) return json(res, 400, { error: 'command is required' });
+    try {
+      const result = await executeBash(body.command, {
+        timeout: body.timeout ? parseInt(body.timeout, 10) : undefined,
+        cwd: body.cwd,
+      });
+      return json(res, 200, { 
+        success: result.exitCode === 0 && !result.killed, 
+        ...result 
+      });
+    } catch (err) {
+      return json(res, 500, { error: err.message });
+    }
+  }
+
+  // POST /system/bash/cwd - Set working directory
+  if (subpath === '/system/bash/cwd' && method === 'POST') {
+    if (!body.cwd) return json(res, 400, { error: 'cwd is required' });
+    const newCwd = setWorkingDir(body.cwd);
+    return json(res, 200, { success: true, cwd: newCwd });
+  }
+
+  // GET /system/bash/cwd - Get working directory
+  if (subpath === '/system/bash/cwd' && method === 'GET') {
+    return json(res, 200, { success: true, cwd: getWorkingDir() });
+  }
+
+  // DELETE /system/bash/history - Clear history
+  if (subpath === '/system/bash/history' && method === 'DELETE') {
+    clearBashHistory();
+    return json(res, 200, { success: true });
   }
 
   json(res, 404, { error: `Dashboard API: ${method} ${subpath} not found` });

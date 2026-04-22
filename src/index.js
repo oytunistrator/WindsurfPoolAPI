@@ -6,6 +6,7 @@ import { startServer } from './server.js';
 import { config, log } from './config.js';
 import { existsSync, mkdirSync, rmSync, readdirSync } from 'fs';
 import { resolve as pathResolve } from 'path';
+import { initializeSystem, telegramChannel } from './system/index.js';
 
 export const BRAND = 'WindsurfPoolAPI';
 export const VERSION = '2.0.3';
@@ -67,6 +68,10 @@ async function main() {
     log.warn('  POST /auth/login {"api_key":"..."}');
   }
 
+  // Initialize System module (Telegram, Ollama, etc.)
+  const systemStatus = await initializeSystem();
+  log.info('[SYSTEM] Status:', JSON.stringify(systemStatus));
+
   const server = startServer();
 
   let shuttingDown = false;
@@ -77,7 +82,8 @@ async function main() {
     log.info(`${signal} received — draining ${inflight} in-flight requests (up to 30s)...`);
     if (typeof server.closeIdleConnections === 'function') server.closeIdleConnections();
     server.close(() => {
-      log.info('HTTP server closed, stopping language server');
+      log.info('HTTP server closed, stopping system components');
+      try { telegramChannel.stop(); } catch {}
       try { stopLanguageServer(); } catch {}
       process.exit(0);
     });
