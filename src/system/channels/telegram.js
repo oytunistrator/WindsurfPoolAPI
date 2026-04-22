@@ -485,12 +485,21 @@ export async function initTelegramChannel() {
 export function getTelegramStatus() {
   const chats = [];
   for (const [chatId, chat] of telegramChannel.activeChats.entries()) {
+    // Get last 10 messages for preview
+    const messages = (chat.context || []).slice(-10).map((msg, idx) => ({
+      index: idx + 1,
+      role: msg.role,
+      content: msg.content?.substring(0, 200) + (msg.content?.length > 200 ? '...' : ''), // Truncate long messages
+      timestamp: msg.timestamp || new Date().toISOString(),
+    }));
+    
     chats.push({
       chatId,
       model: chat.settings?.model || config.defaultModel,
       mode: chat.settings?.forceLocal ? 'Local LLM' : 'Cloud API',
       messageCount: chat.context?.length || 0,
       createdAt: chat.createdAt || Date.now(),
+      messages, // Last 10 messages for preview
     });
   }
   

@@ -1552,6 +1552,22 @@ tbody tr:hover td { background: var(--surface-2); }
         </div>
       </div>
     </div>
+
+    <!-- Chat Messages -->
+    <div class="section" id="telegram-messages-section" style="display:none">
+      <div class="section-header">
+        <div>
+          <div class="section-title">💬 Chat Messages</div>
+          <div class="section-desc">Recent messages from active conversations</div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-outline btn-sm" onclick="App.loadTelegram()">Refresh Messages</button>
+        </div>
+      </div>
+      <div class="section-body">
+        <div id="telegram-messages-container"></div>
+      </div>
+    </div>
   </section>
 
   <!-- ════════ Ollama Local LLM ════════ -->
@@ -3284,8 +3300,37 @@ const App = {
             <td>${chat.messageCount}</td>
             <td>${new Date(chat.createdAt).toLocaleString()}</td>
           </tr>`).join('');
+        
+        // Show chat messages section
+        document.getElementById('telegram-messages-section').style.display = 'block';
+        
+        // Update chat messages
+        const messagesContainer = document.getElementById('telegram-messages-container');
+        let messagesHtml = '';
+        
+        status.chats.forEach(chat => {
+          if (chat.messages && chat.messages.length > 0) {
+            messagesHtml += `
+              <div style="margin-bottom:20px;padding:12px;background:var(--surface-2);border-radius:8px">
+                <div style="font-weight:600;margin-bottom:8px;color:var(--accent)">
+                  💬 Chat ${chat.chatId} <span style="font-size:12px;color:var(--text-muted)">(${chat.messageCount} messages)</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  ${chat.messages.map(msg => `
+                    <div style="padding:8px 12px;background:${msg.role === 'user' ? 'var(--accent-soft)' : 'var(--surface)'};border-radius:6px;border-left:3px solid ${msg.role === 'user' ? 'var(--accent)' : 'var(--success)'}">
+                      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase">${msg.role}</div>
+                      <div style="font-size:13px;line-height:1.4">${this.esc(msg.content)}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>`;
+          }
+        });
+        
+        messagesContainer.innerHTML = messagesHtml || '<div class="text-sm text-dim">No messages to display</div>';
       } else {
         tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No active chats</td></tr>';
+        document.getElementById('telegram-messages-section').style.display = 'none';
       }
       
       // Auto-refresh every 5 seconds when on this panel
