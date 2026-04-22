@@ -13,6 +13,7 @@ import { config, log } from '../../config.js';
 import { handleChatCompletions } from '../../handlers/chat.js';
 import { queryLocalLLM } from '../local-llm/ollama.js';
 import { parseAndExecute, getSkillsHelp } from '../skills/index.js';
+import { customCommands, executeCommand, listCommands, addCommand } from '../commands/custom-commands.js';
 
 // Dynamic import for node-telegram-bot-api (optional dependency)
 let TelegramBot;
@@ -63,84 +64,224 @@ class TelegramChannel {
   }
 
   setupHandlers() {
-    // Handle /start command
-    this.bot.onText(/\/start/, (msg) => {
+    // Initialize default commands if not exists
+    this.initializeDefaultCommands();
+
+    // Handle all custom commands dynamically
+    this.bot.onText(/\/([a-zA-Z0-9_-]+)\s*(.*)/, async (msg, match) => {
       const chatId = msg.chat.id;
-      if (!this.isAuthorized(chatId)) {
-        this.bot.sendMessage(chatId, 'Unauthorized. Add your chat ID to TELEGRAM_ALLOWED_CHAT_IDS.');
+      if (!this.isAuthorized(chatId)) return;
+
+      const commandName = match[1];
+      const args = match[2] || '';
+
+      // Skip if it's a skill command (handled separately)
+      if (['weather', 'search', 'stock', 'crypto', 'market', 'youtube'].includes(commandName)) {
+        return; // Let the skill handler process it
+      }
+
+      // Check if it's a registered custom command
+      const command = customCommands.getCommand(commandName);
+      if (command) {
+        this.bot.sendChatAction(chatId, 'typing');
+        try {
+          const result = await this.executeCustomCommand(chatId, commandName, args);
+          this.bot.sendMessage(chatId, result, { parse_mode: 'Markdown' });
+        } catch (err) {
+          this.bot.sendMessage(chatId, `❌ Command error: ${err.message}`);
+        }
         return;
       }
-      this.bot.sendMessage(chatId, 
-        'Welcome to WindsurfPoolAPI Bot!\n\n' +
-        'Send me a message and I\'ll process it through the AI API.\n' +
-        'Commands:\n' +
-        '/reset - Clear conversation context\n' +
-        '/model <name> - Switch model\n' +
-        '/local - Force use local LLM\n' +
-        '/cloud - Force use cloud API\n' +
-        '/status - Check system status'
-      );
+
+      // Handle built-in commands that aren't in custom commands
+      await this.handleBuiltInCommand(chatId, commandName, args, msg);
     });
 
-    // Handle /reset command
-    this.bot.onText(/\/reset/, (msg) => {
-      const chatId = msg.chat.id;
-      if (!this.isAuthorized(chatId)) return;
-      this.activeChats.delete(chatId);
-      this.bot.sendMessage(chatId, 'Conversation context cleared.');
-    });
+    // Handle skill commands
+    this.setupSkillHandlers();
+  }
 
-    // Handle /model command
-    this.bot.onText(/\/model (.+)/, (msg, match) => {
-      const chatId = msg.chat.id;
-      if (!this.isAuthorized(chatId)) return;
-      const model = match[1].trim();
-      const chat = this.getOrCreateChat(chatId);
-      chat.settings.model = model;
-      this.bot.sendMessage(chatId, `Model set to: ${model}`);
-    });
+  /**
+   * Initialize default commands in custom commands system
+   */
+  initializeDefaultCommands() {
+    const defaults = [
+      {
+        name: 'start',
+        description: 'Start the bot and show welcome message',
+        template: 'Welcome to WindsurfPoolAPI Bot!\n\nSend me a message and I\'ll process it through the AI API.\n\nAvailable commands:\n{{commands}}',
+        action: 'start',
+      },
+      {
+        name: 'reset',
+        description: 'Clear conversation context',
+        template: 'Conversation context cleared.',
+        action: 'reset',
+      },
+      {
+        name: 'model',
+        description: 'Switch AI model',
+        template: 'Model set to: {{model}}',
+        parameters: [{ name: 'model', required: true, type: 'string' }],
+        action: 'setModel',
+      },
+      {
+        name: 'local',
+        description: 'Force use local LLM',
+        template: 'Local LLM mode enabled.',
+        action: 'setLocal',
+      },
+      {
+        name: 'cloud',
+        description: 'Force use cloud API',
+        template: 'Cloud API mode enabled.',
+        action: 'setCloud',
+      },
+      {
+        name: 'status',
+        description: 'Check system status',
+        template: '🤖 Current Model: {{model}}\n⚡ Mode: {{mode}}\n💬 Context Length: {{contextLength}} messages\n📡 Bot Status: Online ✅',
+        action: 'status',
+      },
+      {
+        name: 'commands',
+        description: 'List all available commands',
+        template: '📋 **Available Commands:**\n\n{{commandList}}\n\nUse /help <command> for details.',
+        action: 'listCommands',
+      },
+      {
+        name: 'help',
+        description: 'Show help for a command',
+        template: '**/{{command}}**\n{{description}}\n\nUsage: /{{command}} {{params}}',
+        parameters: [{ name: 'command', required: true, type: 'string' }],
+        action: 'help',
+      },
+      {
+        name: 'skills',
+        description: 'List all available skills',
+        template: '{{skillsHelp}}',
+        action: 'skills',
+      },
+    ];
 
-    // Handle /local command
-    this.bot.onText(/\/local/, (msg) => {
-      const chatId = msg.chat.id;
-      if (!this.isAuthorized(chatId)) return;
-      const chat = this.getOrCreateChat(chatId);
-      chat.settings.forceLocal = true;
-      this.bot.sendMessage(chatId, 'Local LLM mode enabled.');
-    });
+    for (const cmd of defaults) {
+      if (!customCommands.getCommand(cmd.name)) {
+        try {
+          addCommand(cmd.name, {
+            description: cmd.description,
+            template: cmd.template,
+            parameters: cmd.parameters || [],
+          });
+          log.info(`[TELEGRAM] Registered default command: /${cmd.name}`);
+        } catch (err) {
+          log.warn(`[TELEGRAM] Failed to register /${cmd.name}: ${err.message}`);
+        }
+      }
+    }
+  }
 
-    // Handle /cloud command
-    this.bot.onText(/\/cloud/, (msg) => {
-      const chatId = msg.chat.id;
-      if (!this.isAuthorized(chatId)) return;
-      const chat = this.getOrCreateChat(chatId);
-      chat.settings.forceLocal = false;
-      this.bot.sendMessage(chatId, 'Cloud API mode enabled.');
-    });
-
-    // Handle /status command
-    this.bot.onText(/\/status/, async (msg) => {
-      const chatId = msg.chat.id;
-      if (!this.isAuthorized(chatId)) return;
+  /**
+   * Execute a custom command
+   */
+  async executeCustomCommand(chatId, commandName, args) {
+    const chat = this.getOrCreateChat(chatId);
+    const command = customCommands.getCommand(commandName);
+    
+    // Parse arguments
+    const params = this.parseCommandArgs(args, command.parameters);
+    
+    // Execute action based on command type
+    switch (commandName) {
+      case 'start':
+        const commands = listCommands().map(c => `/${c.name} - ${c.description}`).join('\n');
+        return command.template.replace('{{commands}}', commands);
       
-      const chat = this.getOrCreateChat(chatId);
-      const status = 
-        `🤖 Current Model: ${chat.settings.model || config.defaultModel}\n` +
-        `⚡ Mode: ${chat.settings.forceLocal ? 'Local LLM' : 'Cloud API'}\n` +
-        `💬 Context Length: ${chat.context.length} messages\n` +
-        `📡 Bot Status: Online ✅`;
-      this.bot.sendMessage(chatId, status);
-    });
-
-    // Handle /skills command
-    this.bot.onText(/\/skills/, async (msg) => {
-      const chatId = msg.chat.id;
-      if (!this.isAuthorized(chatId)) return;
+      case 'reset':
+        this.activeChats.delete(chatId);
+        return command.template;
       
-      const help = `🛠 **Available Skills:**\n\n${getSkillsHelp()}`;
-      this.bot.sendMessage(chatId, help, { parse_mode: 'Markdown' });
-    });
+      case 'model':
+        if (!params.model) throw new Error('Model name required');
+        chat.settings.model = params.model;
+        return command.template.replace('{{model}}', params.model);
+      
+      case 'local':
+        chat.settings.forceLocal = true;
+        return command.template;
+      
+      case 'cloud':
+        chat.settings.forceLocal = false;
+        return command.template;
+      
+      case 'status':
+        return command.template
+          .replace('{{model}}', chat.settings.model || config.defaultModel)
+          .replace('{{mode}}', chat.settings.forceLocal ? 'Local LLM' : 'Cloud API')
+          .replace('{{contextLength}}', chat.context.length);
+      
+      case 'commands':
+        const cmdList = listCommands().map(c => `/${c.name} - ${c.description}`).join('\n');
+        return command.template.replace('{{commandList}}', cmdList);
+      
+      case 'help':
+        if (!params.command) throw new Error('Command name required');
+        const targetCmd = customCommands.getCommand(params.command);
+        if (!targetCmd) throw new Error(`Unknown command: ${params.command}`);
+        const paramStr = targetCmd.parameters?.map(p => `<${p.name}>`).join(' ') || '';
+        return `**/${params.command}**\n${targetCmd.description}\n\nUsage: /${params.command} ${paramStr}`;
+      
+      case 'skills':
+        return getSkillsHelp();
+      
+      default:
+        // For user-defined custom commands, execute the template
+        return executeCommand(commandName, params);
+    }
+  }
 
+  /**
+   * Parse command arguments
+   */
+  parseCommandArgs(args, parameters = []) {
+    const parts = args.trim().split(/\s+/).filter(Boolean);
+    const result = {};
+    
+    if (parameters.length === 0) return result;
+    
+    // First parameter gets all remaining args if it's the only one
+    if (parameters.length === 1 && parts.length > 0) {
+      result[parameters[0].name] = args.trim();
+    } else {
+      // Multiple parameters - assign one by one
+      parameters.forEach((param, index) => {
+        if (parts[index]) {
+          result[param.name] = parts[index];
+        }
+      });
+    }
+    
+    return result;
+  }
+
+  /**
+   * Handle built-in commands not in custom commands
+   */
+  async handleBuiltInCommand(chatId, commandName, args, msg) {
+    switch (commandName) {
+      case 'skills':
+        this.bot.sendMessage(chatId, `🛠 **Available Skills:**\n\n${getSkillsHelp()}`, { parse_mode: 'Markdown' });
+        break;
+      
+      default:
+        // Unknown command
+        this.bot.sendMessage(chatId, `❓ Unknown command: /${commandName}\nUse /commands to see available commands.`);
+    }
+  }
+
+  /**
+   * Setup skill command handlers
+   */
+  setupSkillHandlers() {
     // Handle skill commands: /weather, /search, /stock, /crypto, /market, /youtube
     this.bot.onText(/\/(weather|search|stock|crypto|market|youtube)\s*(.*)/, async (msg, match) => {
       const chatId = msg.chat.id;
