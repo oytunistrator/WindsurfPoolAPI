@@ -141,7 +141,7 @@ export function getSkillsStatus() {
     weather: {
       available: true,
       providers: {
-        openweather: !!process.env.OPENWEATHER_API_KEY,
+        yandex: true, // Web scraping + direct links
         yahoo: true, // Always available (no API key needed)
       },
     },

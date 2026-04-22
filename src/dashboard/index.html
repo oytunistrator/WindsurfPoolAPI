@@ -1776,7 +1776,7 @@ tbody tr:hover td { background: var(--surface-2); }
       <div class="section-header">
         <div>
           <div class="section-title">🌤 Weather</div>
-          <div class="section-desc">Get current weather and forecast (OpenWeatherMap + Yahoo)</div>
+          <div class="section-desc">Get weather from Yandex Weather with direct links</div>
         </div>
       </div>
       <div class="section-body">
@@ -3349,7 +3349,7 @@ const App = {
       
       const cards = [
         { title: 'YouTube', value: skillsStatus.youtube?.available ? '✓' : '✗', sub: skillsStatus.youtube?.available ? 'YouTube API Ready' : 'No API Key', cls: skillsStatus.youtube?.available ? 'success' : 'warn' },
-        { title: 'Weather', value: skillsStatus.weather?.available ? '✓' : '✗', sub: skillsStatus.weather?.providers?.openweather ? 'API Key OK' : 'No API Key', cls: skillsStatus.weather?.available ? 'success' : 'warn' },
+        { title: 'Weather', value: skillsStatus.weather?.available ? '✓' : '✗', sub: 'Yandex Weather', cls: skillsStatus.weather?.available ? 'success' : 'warn' },
         { title: 'Web Search', value: skillsStatus.websearch?.available ? '✓' : '✗', sub: skillsStatus.websearch?.providers?.serpapi ? 'SerpAPI' : 'DuckDuckGo', cls: skillsStatus.websearch?.available ? 'success' : 'warn' },
         { title: 'Finance', value: skillsStatus.finance?.available ? '✓' : '✗', sub: 'Stocks + Crypto', cls: skillsStatus.finance?.available ? 'success' : 'warn' },
       ];
