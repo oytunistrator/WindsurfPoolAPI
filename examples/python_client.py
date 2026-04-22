@@ -1,15 +1,15 @@
 """
-WindsurfAPI - Python 客户端示例
-=================================
+WindsurfAPI - Python client examples
+=====================================
 
-三种用法：
-  1. 原生 OpenAI SDK（推荐） - 把 base_url 指向 WindsurfAPI 即可
-  2. Anthropic SDK         - 走 /v1/messages 端点
-  3. 纯 urllib / requests  - 不依赖任何 SDK
+Three usage modes:
+  1. Native OpenAI SDK (recommended) - point base_url at WindsurfAPI
+  2. Anthropic SDK                   - uses the /v1/messages endpoint
+  3. Pure urllib / requests          - no SDK dependency
 
-运行:
-  pip install openai           # 对应示例 1
-  pip install anthropic        # 对应示例 2
+Run:
+  pip install openai           # for example 1
+  pip install anthropic        # for example 2
   python python_client.py
 """
 
@@ -23,30 +23,30 @@ API_KEY = os.getenv("WINDSURF_API_KEY", "sk-dummy")
 
 
 # ─────────────────────────────────────────────────────────
-# 示例 1: OpenAI SDK
+# Example 1: OpenAI SDK
 # ─────────────────────────────────────────────────────────
 def example_openai_sdk():
     try:
         from openai import OpenAI
     except ImportError:
-        print("[skip] pip install openai 后再跑示例 1")
+        print("[skip] Run 'pip install openai' first to use example 1")
         return
 
     client = OpenAI(api_key=API_KEY, base_url=f"{BASE}/v1")
 
-    # 非流式
+    # Non-streaming
     resp = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "user", "content": "用一句话介绍 WindsurfAPI"}],
+        messages=[{"role": "user", "content": "Describe WindsurfAPI in one sentence"}],
     )
     print("[openai] reply:", resp.choices[0].message.content)
     print("[openai] usage:", resp.usage)
 
-    # 流式
+    # Streaming
     print("[openai] streaming:", end=" ", flush=True)
     stream = client.chat.completions.create(
         model="claude-4.5-sonnet",
-        messages=[{"role": "user", "content": "数到五"}],
+        messages=[{"role": "user", "content": "Count to five"}],
         stream=True,
     )
     for chunk in stream:
@@ -56,13 +56,13 @@ def example_openai_sdk():
 
 
 # ─────────────────────────────────────────────────────────
-# 示例 2: Anthropic SDK（/v1/messages 端点）
+# Example 2: Anthropic SDK (/v1/messages endpoint)
 # ─────────────────────────────────────────────────────────
 def example_anthropic_sdk():
     try:
         from anthropic import Anthropic
     except ImportError:
-        print("[skip] pip install anthropic 后再跑示例 2")
+        print("[skip] Run 'pip install anthropic' first to use example 2")
         return
 
     client = Anthropic(api_key=API_KEY, base_url=BASE)
@@ -75,12 +75,12 @@ def example_anthropic_sdk():
 
 
 # ─────────────────────────────────────────────────────────
-# 示例 3: 纯 urllib（零依赖）
+# Example 3: Pure urllib (zero dependencies)
 # ─────────────────────────────────────────────────────────
 def example_urllib():
     payload = {
         "model": "gpt-4o-mini",
-        "messages": [{"role": "user", "content": "写一行 Python"}],
+        "messages": [{"role": "user", "content": "Write one line of Python"}],
         "stream": False,
     }
     req = urllib.request.Request(
@@ -100,7 +100,7 @@ def example_urllib():
 
 
 # ─────────────────────────────────────────────────────────
-# Dashboard API 示例 - 拉取使用统计
+# Dashboard API example - fetch usage stats
 # ─────────────────────────────────────────────────────────
 def example_usage_stats():
     pw = os.getenv("DASHBOARD_PASSWORD", "")
@@ -112,9 +112,9 @@ def example_usage_stats():
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read())
             u = data["usage"]
-            print(f"[usage] 总请求: {u['total_requests']}")
-            print(f"[usage] 成功/失败: {u['success_count']} / {u['failure_count']}")
-            print(f"[usage] Token 总量: {u['total_tokens']:,}")
+            print(f"[usage] Total requests: {u['total_requests']}")
+            print(f"[usage] Success/Failure: {u['success_count']} / {u['failure_count']}")
+            print(f"[usage] Total tokens: {u['total_tokens']:,}")
             print(f"[usage] Credits: {u['total_credits']:.1f}")
             for api, stats in u["apis"].items():
                 print(f"[usage]   {api}: req={stats['total_requests']} tok={stats['total_tokens']:,}")

@@ -1,13 +1,13 @@
 /**
- * WindsurfAPI — TypeScript 客户端示例
- * ====================================
+ * WindsurfAPI — TypeScript client examples
+ * ==========================================
  *
- * 三种用法：
- *   1. 原生 OpenAI SDK（npm i openai）
- *   2. Anthropic SDK（npm i @anthropic-ai/sdk）
- *   3. 纯 fetch —— 零依赖，Node 20+ / Bun / Deno / 浏览器都能跑
+ * Three usage modes:
+ *   1. Native OpenAI SDK (npm i openai)
+ *   2. Anthropic SDK (npm i @anthropic-ai/sdk)
+ *   3. Pure fetch — zero dependencies, works on Node 20+ / Bun / Deno / browser
  *
- * 跑起来：
+ * Run:
  *   npx tsx examples/typescript_client.ts
  */
 
@@ -15,7 +15,7 @@ const BASE = process.env.WINDSURF_BASE ?? 'http://localhost:3003';
 const API_KEY = process.env.WINDSURF_API_KEY ?? 'sk-dummy';
 
 // ─────────────────────────────────────────────────────────
-// 示例 1: 纯 fetch —— 零依赖流式消费
+// Example 1: Pure fetch — zero-dependency streaming
 // ─────────────────────────────────────────────────────────
 async function fetchStreaming() {
   const resp = await fetch(`${BASE}/v1/chat/completions`, {
@@ -26,7 +26,7 @@ async function fetchStreaming() {
     },
     body: JSON.stringify({
       model: 'claude-4.5-sonnet',
-      messages: [{ role: 'user', content: '写一行 TypeScript 代码' }],
+      messages: [{ role: 'user', content: 'Write one line of TypeScript code' }],
       stream: true,
     }),
   });
@@ -46,7 +46,7 @@ async function fetchStreaming() {
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
 
-    // SSE 消息以 "\n\n" 分隔；每个消息以 "data: " 开头
+    // SSE messages are separated by "\n\n"; each message starts with "data: "
     const lines = buffer.split('\n\n');
     buffer = lines.pop() ?? '';
     for (const line of lines) {
@@ -66,7 +66,7 @@ async function fetchStreaming() {
 }
 
 // ─────────────────────────────────────────────────────────
-// 示例 2: OpenAI SDK
+// Example 2: OpenAI SDK
 // ─────────────────────────────────────────────────────────
 async function openaiSdk() {
   let OpenAI: any;
@@ -74,21 +74,21 @@ async function openaiSdk() {
     // @ts-ignore — optional peer dep; may not be installed
     OpenAI = (await import('openai')).default;
   } catch {
-    console.log('[skip] npm i openai 后再跑示例 2');
+    console.log('[skip] Run "npm i openai" first to use example 2');
     return;
   }
 
   const client = new OpenAI({ apiKey: API_KEY, baseURL: `${BASE}/v1` });
   const res = await client.chat.completions.create({
     model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: 'WindsurfAPI 是什么？一句话。' }],
+    messages: [{ role: 'user', content: 'What is WindsurfAPI? One sentence.' }],
   });
   console.log('[openai]', res.choices[0].message.content);
   console.log('[openai] usage:', res.usage);
 }
 
 // ─────────────────────────────────────────────────────────
-// 示例 3: Anthropic SDK（/v1/messages）
+// Example 3: Anthropic SDK (/v1/messages)
 // ─────────────────────────────────────────────────────────
 async function anthropicSdk() {
   let Anthropic: any;
@@ -96,7 +96,7 @@ async function anthropicSdk() {
     // @ts-ignore — optional peer dep; may not be installed
     Anthropic = (await import('@anthropic-ai/sdk')).default;
   } catch {
-    console.log('[skip] npm i @anthropic-ai/sdk 后再跑示例 3');
+    console.log('[skip] Run "npm i @anthropic-ai/sdk" first to use example 3');
     return;
   }
 
@@ -110,7 +110,7 @@ async function anthropicSdk() {
 }
 
 // ─────────────────────────────────────────────────────────
-// Dashboard API 示例 —— 拉统计快照
+// Dashboard API example — fetch usage snapshot
 // ─────────────────────────────────────────────────────────
 async function usageStats() {
   const pw = process.env.DASHBOARD_PASSWORD ?? '';
@@ -122,8 +122,8 @@ async function usageStats() {
     return;
   }
   const { usage: u } = await resp.json();
-  console.log(`[usage] 总请求: ${u.total_requests}`);
-  console.log(`[usage] Token 总量: ${u.total_tokens.toLocaleString()}`);
+  console.log(`[usage] Total requests: ${u.total_requests}`);
+  console.log(`[usage] Total tokens: ${u.total_tokens.toLocaleString()}`);
   console.log(`[usage] Credits: ${u.total_credits.toFixed(1)}`);
 }
 

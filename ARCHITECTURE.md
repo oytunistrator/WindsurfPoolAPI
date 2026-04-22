@@ -92,25 +92,10 @@ Stress-tested 2026-04 on a remote host — 15-way opus concurrency went from
 **DO NOT** confuse `planner_mode` with `CascadeToolConfig.run_command`. They
 are different fields — `planner_mode` lives on `CascadeConversationalPlannerConfig`
 (field 4), `run_command` lives on `CascadeToolConfig` (field 8 of the tool
-config). NO_TOOL is the flag to set; `tool_config` must stay unset — turning
-`run_command` on puts the agent into auto-execute mode and breaks things worse.
-
-## Dashboard
-
-Single page at `/dashboard`. Auth: bearer token = `config.API_KEY` or configured
-dashboard password. 8 panels: 總覽 / 登入取號 / 帳號管理 / 模型控制 / Proxy / 日誌 / 統計 / 封禁偵測.
-
-Persisted state lives in JSON files next to `src/`:
-- `accounts.json` — account pool (tier, capabilities, blockedModels, credits, proxy)
-- `proxy-config.json` — global + per-account proxy URLs
-- `model-access.json` — global model allow/blocklist
-- `runtime-config.json` — experimental toggles (cascadeConversationReuse, etc.)
 
 ## Conventions
 
-- **Language:** Dashboard UI (`src/dashboard/index.html`) uses **简体中文**.
-  README and `docs/` GitHub Pages use **繁體中文**. Code identifiers and comments
-  stay in English.
+- **Language:** All text uses **English**. Code identifiers and comments stay in English.
 - **Dashboard UI:** shadcn-style dark theme via CSS variables (`--surface`, `--accent`, `--radius`).
   NEVER use browser `alert()` / `confirm()` / `prompt()`. Use `App.confirm(title, desc, opts)`
   and `App.prompt(title, desc, fields)` — they render styled modal overlays. `App.confirm`

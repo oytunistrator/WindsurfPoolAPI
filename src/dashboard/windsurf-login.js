@@ -180,18 +180,18 @@ export async function windsurfLogin(email, password, proxy = null) {
   if (fbRes.data.error) {
     const msg = fbRes.data.error.message || 'Unknown Firebase error';
     const friendly = {
-      'EMAIL_NOT_FOUND': '信箱不存在',
-      'INVALID_PASSWORD': '密碼錯誤',
-      'INVALID_LOGIN_CREDENTIALS': '信箱或密碼錯誤',
-      'USER_DISABLED': '帳號已被停用',
-      'TOO_MANY_ATTEMPTS_TRY_LATER': '嘗試太多次，請稍後再試',
-      'INVALID_EMAIL': '信箱格式錯誤',
+      'EMAIL_NOT_FOUND': 'Email not found',
+      'INVALID_PASSWORD': 'Incorrect password',
+      'INVALID_LOGIN_CREDENTIALS': 'Incorrect email or password',
+      'USER_DISABLED': 'Account has been disabled',
+      'TOO_MANY_ATTEMPTS_TRY_LATER': 'Too many attempts, please try again later',
+      'INVALID_EMAIL': 'Invalid email format',
     }[msg] || msg;
-    throw new Error(`Firebase 登入失敗: ${friendly}`);
+    throw new Error(`Firebase login failed: ${friendly}`);
   }
 
   const idToken = fbRes.data.idToken;
-  if (!idToken) throw new Error('Firebase 回應缺少 idToken');
+  if (!idToken) throw new Error('Firebase response missing idToken');
 
   log.info(`Firebase login OK: ${email}, UID=${fbRes.data.localId}`);
 
@@ -206,7 +206,7 @@ export async function windsurfLogin(email, password, proxy = null) {
   const regRes = await httpsRequest(CODEIUM_REGISTER_URL, { method: 'POST', headers: regHeaders }, regBody, proxy);
 
   if (regRes.status >= 400 || !regRes.data.api_key) {
-    throw new Error(`Codeium 註冊失敗: ${JSON.stringify(regRes.data).slice(0, 200)}`);
+    throw new Error(`Codeium registration failed: ${JSON.stringify(regRes.data).slice(0, 200)}`);
   }
 
   log.info(`Codeium register OK: ${email} → key=${regRes.data.api_key.slice(0, 12)}...`);

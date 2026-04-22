@@ -427,7 +427,7 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
   if (subpath === '/windsurf-login' && method === 'POST') {
     try {
       const { email, password, proxy: loginProxy, autoAdd } = body;
-      if (!email || !password) return json(res, 400, { error: 'email 和 password 為必填' });
+      if (!email || !password) return json(res, 400, { error: 'email and password are required' });
 
       // Use provided proxy, or global proxy
       const proxy = loginProxy?.host ? loginProxy : getProxyConfig().global;
@@ -469,7 +469,7 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
   if (subpath === '/oauth-login' && method === 'POST') {
     try {
       const { idToken, refreshToken, email, provider, autoAdd } = body;
-      if (!idToken) return json(res, 400, { error: '缺少 idToken' });
+      if (!idToken) return json(res, 400, { error: 'idToken is required' });
 
       const proxy = getProxyConfig().global;
       const { apiKey, name } = await reRegisterWithCodeium(idToken, proxy);

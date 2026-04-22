@@ -12,29 +12,27 @@
 <p align="center">
   <b>Enterprise-grade multi-account pool proxy for Windsurf AI platform.</b><br/>
   Expose 113+ models (Claude / GPT / Gemini / DeepSeek / Grok / Qwen / Kimi / GLM) via standard OpenAI & Anthropic APIs.<br/>
-  <sub>企业级 Windsurf 多账号池化 API 代理 —— 113+ 模型，OpenAI / Anthropic 双协议兼容，Cursor / Claude Code 原生支持</sub>
+  <sub>Enterprise-grade Windsurf multi-account pool API proxy — 113+ models, OpenAI / Anthropic dual-protocol, native Cursor / Claude Code support</sub>
 </p>
 
 <p align="center">
-  <a href="#-quick-start--快速开始">Quick Start</a> ·
-  <a href="#-features--核心特性">Features</a> ·
-  <a href="#-dashboard--管理后台">Dashboard</a> ·
-  <a href="#-api-reference--接口文档">API Reference</a> ·
-  <a href="#-deployment--部署指南">Deployment</a> ·
-  <a href="#-faq--常见问题">FAQ</a>
+  <a href="#-quick-start">Quick Start</a> ·
+  <a href="#-features">Features</a> ·
+  <a href="#-dashboard">Dashboard</a> ·
+  <a href="#-api-reference">API Reference</a> ·
+  <a href="#-deployment">Deployment</a> ·
+  <a href="#-faq">FAQ</a>
 </p>
 
 ---
 
-## ⚠️ Disclaimer / 声明
+## ⚠️ Disclaimer
 
 This project is for **personal learning, research, and self-hosting only**. Commercial use, resale, paid deployment, or repackaging as a service without written authorization is **strictly prohibited**.
 
-本项目仅供**个人学习、研究、自用**。未经作者书面授权，禁止任何商业用途、付费代部署、中转转售或包装成服务对外销售。
-
 ---
 
-## ✨ Features / 核心特性
+## ✨ Features
 
 | Feature | Description |
 | :--- | :--- |
@@ -53,47 +51,32 @@ This project is for **personal learning, research, and self-hosting only**. Comm
 | **Streaming SSE** | OpenAI format with `stream_options.include_usage` support |
 | **Zero Dependencies** | Pure Node.js built-in modules, nothing to install |
 
-<details>
-<summary><b>中文特性列表</b></summary>
-
-- **双协议兼容** — OpenAI + Anthropic 原生端点，无需任何中间件
-- **113+ 模型** — 启动时自动拉取 Windsurf 最新 catalog，实时更新
-- **多账号池** — 按剩余容量均衡分配，自动故障转移，per-model 限速隔离
-- **Token + Credit 精细统计** — 按 API × 模型分层聚合，精确到单次请求
-- **Dashboard 管理后台** — 账号管理、代理配置、实时日志、使用图表、封禁侦测
-- **批量操作** — 一键多选账号批量启用/停用
-- **OAuth 登录** — 支持 Google/GitHub Firebase OAuth 登录
-- **动态超时检测** — 根据输入长度自适应超时阈值（30s~90s），大上下文不误判
-- **全持久化** — 所有设置、账号状态、Token 均持久化存储，重启不丢失
-- **零依赖** — 纯 Node.js 内置模块，开箱即用
-
-</details>
 
 ---
 
-## 🚀 Quick Start / 快速开始
+## 🚀 Quick Start
 
-### Prerequisites / 前置条件
+### Prerequisites
 
 - **Node.js ≥ 20**
 - **Windsurf Language Server** binary (`language_server_linux_x64` or `language_server_darwin_arm64`)
 - At least one Windsurf account (Free tier supports limited models)
 
-### Install & Run / 安装启动
+### Install & Run
 
 ```bash
 git clone https://github.com/guanxiaol/WindsurfPoolAPI.git
 cd WindsurfPoolAPI
 
-# Place Language Server binary / 放置 Language Server 二进制
+# Place Language Server binary
 sudo mkdir -p /opt/windsurf
 sudo cp /path/to/language_server_linux_x64 /opt/windsurf/
 sudo chmod +x /opt/windsurf/language_server_linux_x64
 
-# Optional: configure / 可选配置
+# Optional: configure
 cp .env.example .env    # Edit API_KEY, DASHBOARD_PASSWORD, etc.
 
-# Start / 启动
+# Start
 node src/index.js
 ```
 
@@ -113,39 +96,37 @@ Mount the LS binary at `/opt/windsurf/` on the host before starting.
 
 ---
 
-## 🔑 Account Management / 账号管理
+## 🔑 Account Management
 
-> ⚠️ **Always use Token login!** / **必须使用 Token 方式登录！**
+> ⚠️ **Always use Token login!**
 >
 > Windsurf has a known bug where email/password login may route requests to the wrong account.
 >
-> Windsurf 官方存在 bug：邮箱/密码登录可能导致请求路由到错误账号。
->
-> **Get your token** / **获取 Token**：[https://windsurf.com/editor/show-auth-token?workflow=](https://windsurf.com/editor/show-auth-token?workflow=)
+> **Get your token**: [https://windsurf.com/editor/show-auth-token?workflow=](https://windsurf.com/editor/show-auth-token?workflow=)
 
 ```bash
-# ✅ Add account via Token (recommended / 推荐)
+# ✅ Add account via Token (recommended)
 curl -X POST http://localhost:3003/auth/login \
   -H "Content-Type: application/json" \
   -d '{"token": "your-windsurf-token"}'
 
-# Batch add / 批量添加
+# Batch add
 curl -X POST http://localhost:3003/auth/login \
   -H "Content-Type: application/json" \
   -d '{"accounts": [{"token": "t1"}, {"token": "t2"}]}'
 
-# List accounts / 列出账号
+# List accounts
 curl http://localhost:3003/auth/accounts
 
-# Remove / 删除
+# Remove
 curl -X DELETE http://localhost:3003/auth/accounts/{id}
 ```
 
 ---
 
-## 📡 API Reference / 接口文档
+## 📡 API Reference
 
-### OpenAI Compatible / OpenAI 兼容
+### OpenAI Compatible
 
 ```bash
 curl http://localhost:3003/v1/chat/completions \
@@ -158,7 +139,7 @@ curl http://localhost:3003/v1/chat/completions \
   }'
 ```
 
-### Anthropic Compatible / Anthropic 兼容
+### Anthropic Compatible
 
 ```bash
 curl http://localhost:3003/v1/messages \
@@ -172,7 +153,7 @@ curl http://localhost:3003/v1/messages \
   }'
 ```
 
-### Environment Variables / 环境变量
+### Environment Variables
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
@@ -204,7 +185,7 @@ All endpoints require `X-Dashboard-Password` header.
 
 ---
 
-## 🖥 Dashboard / 管理后台
+## 🖥 Dashboard
 
 Access at `http://localhost:3003/dashboard`
 
@@ -220,26 +201,26 @@ Access at `http://localhost:3003/dashboard`
 | **Detection** | Error pattern monitoring, account health |
 | **Experimental** | Cascade session reuse, model identity masking, preflight rate-limit |
 
-### Screenshots / 界面预览
+### Screenshots
 
 <p align="center">
-  <b>Account Pool — Multi-account quota monitoring / 多账号额度监控</b><br/>
+  <b>Account Pool — Multi-account quota monitoring</b><br/>
   <img src="docs/screenshots/accounts.png" width="900" />
 </p>
 
 <p align="center">
-  <b>Analytics — Token & Credit usage charts / 统计分析面板</b><br/>
+  <b>Analytics — Token & Credit usage charts</b><br/>
   <img src="docs/screenshots/analytics.png" width="900" />
 </p>
 
 <p align="center">
-  <b>Model Stats — Per-model request breakdown / 模型使用统计</b><br/>
+  <b>Model Stats — Per-model request breakdown</b><br/>
   <img src="docs/screenshots/models.png" width="900" />
 </p>
 
 ---
 
-## 🤖 Supported Models / 支持的模型
+## 🤖 Supported Models
 
 <details>
 <summary><b>Claude (Anthropic)</b></summary>
@@ -266,7 +247,7 @@ Access at `http://localhost:3003/dashboard`
 </details>
 
 <details>
-<summary><b>Others / 其他</b></summary>
+<summary><b>Others</b></summary>
 
 `deepseek-v3` · `deepseek-r1` · `grok-3[-mini]` · `grok-code-fast-1` · `qwen-3` · `qwen-3-coder` ·
 `kimi-k2` · `kimi-k2.5` · `swe-1.5[-thinking]` · `swe-1.6-fast` · `arena-fast` · `arena-smart`
@@ -274,14 +255,12 @@ Access at `http://localhost:3003/dashboard`
 </details>
 
 > Model catalog is auto-synced from Windsurf cloud on startup. Free accounts: `gpt-4o-mini` and `gemini-2.5-flash` only.
->
-> 启动时自动从 Windsurf 云端拉取最新模型列表。免费账号仅可用 `gpt-4o-mini` 和 `gemini-2.5-flash`。
 
 ---
 
-## 🚢 Deployment / 部署指南
+## 🚢 Deployment
 
-### PM2 (Recommended / 推荐)
+### PM2 (Recommended)
 
 ```bash
 npm install -g pm2
@@ -320,7 +299,7 @@ sudo systemctl enable --now windsurfpool
 bash scripts/install-macos.sh
 ```
 
-### Firewall / 防火墙
+### Firewall
 
 ```bash
 # Ubuntu
@@ -331,12 +310,10 @@ sudo firewall-cmd --add-port=3003/tcp --permanent && sudo firewall-cmd --reload
 ```
 
 > Cloud servers: remember to open port 3003 in your security group.
->
-> 云服务器记得在安全组中开放 3003 端口。
 
 ---
 
-## 🏗 Architecture / 架构
+## 🏗 Architecture
 
 ```text
 Client (OpenAI SDK / Anthropic SDK / curl / Cursor / Aider)
@@ -359,7 +336,7 @@ See `ARCHITECTURE.md` for module-level details.
 
 ---
 
-## ❓ FAQ / 常见问题
+## ❓ FAQ
 
 **Q: `LS binary not found` on startup?**
 A: Ensure the binary exists at `/opt/windsurf/language_server_linux_x64` (or set `LS_BINARY_PATH`).
@@ -384,11 +361,9 @@ See `CONTRIBUTING.md`. Issues and PRs are welcome.
 
 ---
 
-## 🙏 Acknowledgements / 致谢
+## 🙏 Acknowledgements
 
 This project is built upon [dwgx/WindsurfAPI](https://github.com/dwgx/WindsurfAPI). Special thanks to [@dwgx](https://github.com/dwgx) for the foundational work and open-source contribution.
-
-本项目基于 [dwgx/WindsurfAPI](https://github.com/dwgx/WindsurfAPI) 的初始版本开发，感谢原作者 [@dwgx](https://github.com/dwgx) 的开创性工作和开源贡献。
 
 ---
 

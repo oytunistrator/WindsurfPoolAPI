@@ -210,7 +210,7 @@ export async function handleChatCompletions(body) {
       status: 403,
       body: {
         error: {
-          message: `模型 ${displayModel} 在当前账号池中不可用（未订阅或已被封禁）`,
+          message: `Model ${displayModel} is not available in the current account pool (not subscribed or banned)`,
           type: 'model_not_entitled',
         },
       },
@@ -336,7 +336,7 @@ export async function handleChatCompletions(body) {
   if (!lastErr || lastErr.status === 429) {
     const rl = isAllRateLimited(modelKey);
     if (rl.allLimited) {
-      return { status: 429, body: { error: { message: `${displayModel} 所有账号均已达速率限制，请 ${Math.ceil(rl.retryAfterMs / 1000)} 秒后重试`, type: 'rate_limit_exceeded', retry_after_ms: rl.retryAfterMs } } };
+      return { status: 429, body: { error: { message: `${displayModel} all accounts have hit the rate limit, please retry after ${Math.ceil(rl.retryAfterMs / 1000)}s`, type: 'rate_limit_exceeded', retry_after_ms: rl.retryAfterMs } } };
     }
   }
   return lastErr || { status: 503, body: { error: { message: 'No active accounts available', type: 'pool_exhausted' } } };
@@ -488,7 +488,7 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
       const rl = isAllRateLimited(modelKey);
       return {
         status: 429,
-        body: { error: { message: `${model} 已达速率限制，请稍后重试`, type: 'rate_limit_exceeded', retry_after_ms: rl.retryAfterMs || 60000 } },
+        body: { error: { message: `${model} has hit the rate limit, please retry later`, type: 'rate_limit_exceeded', retry_after_ms: rl.retryAfterMs || 60000 } },
       };
     }
     return {
@@ -815,7 +815,7 @@ function streamResponse(id, created, model, modelKey, messages, cascadeMessages,
           // Check if failure is due to all accounts being rate-limited
           const rl = isAllRateLimited(modelKey);
           const errMsg = rl.allLimited
-            ? `${model} 所有账号均已达速率限制，请 ${Math.ceil(rl.retryAfterMs / 1000)} 秒后重试`
+            ? `${model} all accounts have hit the rate limit, please retry after ${Math.ceil(rl.retryAfterMs / 1000)}s`
             : sanitizeText(lastErr?.message || 'no accounts');
           send({ id, object: 'chat.completion.chunk', created, model,
             choices: [{ index: 0, delta: { content: `\n[Error: ${errMsg}]` }, finish_reason: 'stop' }] });

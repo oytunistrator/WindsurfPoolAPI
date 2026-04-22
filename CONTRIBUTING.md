@@ -1,102 +1,102 @@
-# 贡献指南
+# Contributing Guide
 
-感谢有兴趣为 **WindsurfAPI** 贡献代码。本文档说明环境准备、代码规范与 PR 流程。
+Thank you for your interest in contributing to **WindsurfAPI**. This document explains environment setup, code conventions, and the PR process.
 
-## 环境准备
+## Prerequisites
 
 - **Node.js ≥ 20**
-- **Windsurf Language Server 二进制文件** (`language_server_linux_x64`)，默认放在 `/opt/windsurf/`
-- 不需要 `npm install` —— 项目**零 npm 依赖**，只用 `node:*` 内置模块
+- **Windsurf Language Server binary** (`language_server_linux_x64`), placed by default at `/opt/windsurf/`
+- No `npm install` needed — the project has **zero npm dependencies** and uses only `node:*` built-ins
 
 ```bash
 git clone https://github.com/<your-fork>/WindsurfAPI.git
 cd WindsurfAPI
 
-# 快速启动（前台）
+# Quick start (foreground)
 node src/index.js
 
-# 开发模式（文件变更自动重启）
+# Dev mode (auto-restart on file changes)
 node --watch src/index.js
 ```
 
-服务默认监听 `http://0.0.0.0:3003`，Dashboard 在 `/dashboard`。
+The service listens on `http://0.0.0.0:3003` by default; the Dashboard is at `/dashboard`.
 
-## 代码规范
+## Code Conventions
 
-### 零 npm 依赖原则
+### Zero npm Dependencies
 
-- **不要**添加任何 `npm install <xxx>`。需要 HTTP/protobuf/crypto 功能？用 `node:https` / 手写 varint / `node:crypto`
-- 这是项目的设计取舍：安全面小、启动快、部署简单
-- `package.json` 里的 `dependencies` 字段必须保持为空（CI 会校验）
+- **Do not** add any `npm install <xxx>`. Need HTTP/protobuf/crypto? Use `node:https` / hand-roll varint / `node:crypto`
+- This is a deliberate design tradeoff: small attack surface, fast startup, simple deployment
+- The `dependencies` field in `package.json` must remain empty (CI enforces this)
 
-### 代码风格
+### Code Style
 
-- ES modules (`import`/`export`)，不用 CommonJS
-- 注释使用**英文**，Dashboard UI 用**简体中文**
-- 变量命名用 camelCase，类用 PascalCase
-- 错误日志一律走 `log.info/warn/error/debug`（来自 `src/config.js`）
+- ES modules (`import`/`export`), no CommonJS
+- Comments and all text in **English**
+- Variable names in camelCase, classes in PascalCase
+- All error logs go through `log.info/warn/error/debug` (from `src/config.js`)
 
-### 文件组织
+### File Organization
 
-参考 `ARCHITECTURE.md` 的模块划分。新增功能建议：
+Refer to the module breakdown in `ARCHITECTURE.md`. For new features:
 
-- HTTP 路由入口 → `src/server.js`
-- 请求处理逻辑 → `src/handlers/*.js`
-- Dashboard 后端 API → `src/dashboard/api.js`
-- Dashboard 前端 → `src/dashboard/index.html`
-- 持久化状态 → 写单独的 `*.json` 文件（加入 `.gitignore`）
+- HTTP route entry → `src/server.js`
+- Request handling logic → `src/handlers/*.js`
+- Dashboard backend API → `src/dashboard/api.js`
+- Dashboard frontend → `src/dashboard/index.html`
+- Persisted state → separate `*.json` files (add to `.gitignore`)
 
-## 提交规范
+## Commit Conventions
 
-采用 [Conventional Commits](https://www.conventionalcommits.org/) 格式：
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
 
 ```text
-feat: 新功能
-fix:  修 bug
-docs: 文档
-refactor: 重构（不影响功能）
-perf: 性能优化
-test: 测试
-chore: 构建/脚手架
+feat:     new feature
+fix:      bug fix
+docs:     documentation
+refactor: refactor (no functional change)
+perf:     performance improvement
+test:     tests
+chore:    build / scaffolding
 ```
 
-示例：
+Examples:
 
 ```text
 feat(dashboard): add token usage export/import endpoints
 fix(cascade): handle panel-state-not-found on Send retry
 ```
 
-## PR 检查清单
+## PR Checklist
 
-提交 PR 前请确认：
+Before submitting a PR:
 
-- [ ] `find src -name '*.js' -exec node --check {} \;` 全部通过
-- [ ] 没有引入 npm 依赖
-- [ ] 没有硬编码路径、IP、凭证
-- [ ] 新增功能在 README 和/或 ARCHITECTURE.md 中有说明
-- [ ] 敏感文件（`accounts.json` / `stats.json` / `.env` / `logs/` / `data/`）没有被提交
+- [ ] `find src -name '*.js' -exec node --check {} \;` all pass
+- [ ] No npm dependencies introduced
+- [ ] No hardcoded paths, IPs, or credentials
+- [ ] New features documented in README and/or ARCHITECTURE.md
+- [ ] Sensitive files (`accounts.json` / `stats.json` / `.env` / `logs/` / `data/`) not committed
 
-## 测试
+## Testing
 
-目前项目没有正式的单元测试套件，但关键路径的验证办法：
+The project has no formal unit test suite, but key paths can be verified:
 
-### 本地冒烟
+### Local Smoke Test
 
 ```bash
-# 启动服务
+# Start service
 node src/index.js &
 
-# 基本可用性
+# Basic availability
 curl -fsS http://localhost:3003/health
 curl -fsS http://localhost:3003/v1/models | head -20
 
-# Dashboard 登录
+# Dashboard login
 curl -H "X-Dashboard-Password: $DASHBOARD_PASSWORD" \
   http://localhost:3003/dashboard/api/stats
 ```
 
-### Chat 端到端（需要已添加账号）
+### Chat End-to-End (requires at least one account added)
 
 ```bash
 curl -sS http://localhost:3003/v1/chat/completions \
@@ -104,12 +104,12 @@ curl -sS http://localhost:3003/v1/chat/completions \
   -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"say hi"}],"stream":false}'
 ```
 
-## 问题反馈
+## Reporting Issues
 
-- **Bug**：[GitHub Issues](https://github.com/<org>/WindsurfAPI/issues)，请附上 `logs/error-*.jsonl` 的最近几行
-- **功能建议**：Issues 里贴上使用场景
-- **安全漏洞**：请**私下**邮件联系维护者，不要公开在 Issues
+- **Bugs**: [GitHub Issues](https://github.com/<org>/WindsurfAPI/issues) — please include the last few lines of `logs/error-*.jsonl`
+- **Feature requests**: Open an issue describing your use case
+- **Security vulnerabilities**: Please contact the maintainer **privately** by email; do not post publicly in Issues
 
-## 许可
+## License
 
-贡献代码等同同意以 MIT 许可证发布。
+By contributing, you agree to release your code under the MIT License.
