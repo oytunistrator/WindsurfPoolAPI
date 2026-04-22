@@ -14,6 +14,7 @@ import { handleChatCompletions } from '../../handlers/chat.js';
 import { queryLocalLLM } from '../local-llm/ollama.js';
 import { parseAndExecute, getSkillsHelp } from '../skills/index.js';
 import { customCommands, executeCommand, listCommands, addCommand, removeCommand, customCommands as commandsManager } from '../commands/custom-commands.js';
+import { executeCommand as executeBash } from '../bash/bash-executor.js';
 
 // Dynamic import for node-telegram-bot-api (optional dependency)
 let TelegramBot;
@@ -298,9 +299,132 @@ class TelegramChannel {
   }
 
   /**
+   * Generate bash command using AI
+   */
+  async generateBashCommand(description) {
+    const prompt = `You are a helpful assistant that converts natural language descriptions into safe bash commands.
+    
+User wants: "${description}"
+
+Generate a single bash command that accomplishes this task. 
+IMPORTANT SAFETY RULES:
+- NEVER generate commands that delete files (rm, rmdir)
+- NEVER generate commands that modify system files
+- NEVER generate commands that could harm the system
+- Prefer safe commands like: ls, cat, grep, ps, df, du, ping, curl, date, whoami
+- For file operations, use echo, cat, head, tail only for reading
+
+Respond with ONLY the bash command, no explanation, no markdown formatting.
+If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>`;
+
+    try {
+      const response = await queryLocalLLM(prompt, 'llama3.2', { temperature: 0.3, maxTokens: 200 });
+      return response.trim();
+    } catch (err) {
+      log.error(`[TELEGRAM] Failed to generate bash command: ${err.message}`);
+      throw new Error('AI command generation failed');
+    }
+  }
+
+  /**
+   * Handle bash command confirmation
+   */
+  async handleBashConfirmation(chatId, userMessage) {
+    const chat = this.getOrCreateChat(chatId);
+    const pendingBash = chat.pendingBashCommand;
+    
+    if (!pendingBash) {
+      return false; // No pending command
+    }
+
+    const response = userMessage.toLowerCase().trim();
+    
+    if (response === 'evet' || response === 'yes' || response === 'y' || response === 'e') {
+      // User confirmed - execute the command
+      this.bot.sendChatAction(chatId, 'typing');
+      
+      try {
+        const result = await executeBash(pendingBash.command, { timeout: 30000 });
+        
+        let output = `✅ **Komut Çalıştırıldı:**\n\`\`\`bash\n${pendingBash.command}\n\`\`\`\n\n`;
+        
+        if (result.stdout) {
+          output += `**Çıktı:**\n\`\`\`\n${result.stdout.substring(0, 3000)}\n\`\`\`\n\n`;
+        }
+        
+        if (result.stderr) {
+          output += `**Hata:**\n\`\`\`\n${result.stderr.substring(0, 1000)}\n\`\`\`\n\n`;
+        }
+        
+        output += `⏱️ Süre: ${result.duration}ms | Çıkış Kodu: ${result.exitCode}`;
+        
+        this.bot.sendMessage(chatId, output, { parse_mode: 'Markdown' });
+        
+      } catch (err) {
+        this.bot.sendMessage(chatId, `❌ **Hata:** ${err.message}`, { parse_mode: 'Markdown' });
+      }
+      
+      // Clear pending command
+      delete chat.pendingBashCommand;
+      return true;
+      
+    } else if (response === 'hayır' || response === 'no' || response === 'n' || response === 'h') {
+      // User rejected
+      this.bot.sendMessage(chatId, `❌ Komut iptal edildi: \`${pendingBash.command}\``, { parse_mode: 'Markdown' });
+      delete chat.pendingBashCommand;
+      return true;
+    }
+    
+    return false; // Not a confirmation response
+  }
+
+  /**
    * Setup skill command handlers
    */
   setupSkillHandlers() {
+    // Handle bash command with AI generation
+    this.bot.onText(/\/bash\s*(.+)/, async (msg, match) => {
+      const chatId = msg.chat.id;
+      if (!this.isAuthorized(chatId)) return;
+
+      const description = match[1].trim();
+      if (!description) {
+        this.bot.sendMessage(chatId, '❌ Kullanım: /bash <yapılacak işlem açıklaması>\n\nÖrnek: /bash disk kullanımını göster');
+        return;
+      }
+
+      this.bot.sendChatAction(chatId, 'typing');
+      log.info(`[TELEGRAM] User ${chatId} requested bash command: ${description}`);
+
+      try {
+        // Generate command using AI
+        const generatedCommand = await this.generateBashCommand(description);
+        
+        // Check if AI marked it as unsafe
+        if (generatedCommand.startsWith('UNSAFE:')) {
+          this.bot.sendMessage(chatId, `⚠️ **Güvenlik Uyarısı:**\n${generatedCommand.substring(7).trim()}`, { parse_mode: 'Markdown' });
+          return;
+        }
+
+        // Store pending command
+        const chat = this.getOrCreateChat(chatId);
+        chat.pendingBashCommand = {
+          command: generatedCommand,
+          description: description,
+          timestamp: Date.now(),
+        };
+
+        // Ask for confirmation
+        const confirmMsg = `🤖 **AI Oluşturduğu Komut:**\n\`\`\`bash\n${generatedCommand}\n\`\`\`\n\n⚠️ **Bu komutu çalıştırmak istiyor musunuz?**\n\nYanıt: **evet** (çalıştır) veya **hayır** (iptal)`;
+        
+        this.bot.sendMessage(chatId, confirmMsg, { parse_mode: 'Markdown' });
+        
+      } catch (err) {
+        log.error(`[TELEGRAM] Bash command generation failed: ${err.message}`);
+        this.bot.sendMessage(chatId, `❌ Komut oluşturulamadı: ${err.message}`);
+      }
+    });
+
     // Handle skill commands: /weather, /search, /stock, /crypto, /market, /youtube
     this.bot.onText(/\/(weather|search|stock|crypto|market|youtube)\s*(.*)/, async (msg, match) => {
       const chatId = msg.chat.id;
@@ -346,6 +470,13 @@ class TelegramChannel {
         return;
       }
 
+      // Check for bash confirmation first
+      const isBashConfirmation = await this.handleBashConfirmation(chatId, msg.text);
+      if (isBashConfirmation) {
+        return; // Message was handled as bash confirmation
+      }
+
+      // Process as regular message
       await this.handleMessage(chatId, msg);
     });
   }
