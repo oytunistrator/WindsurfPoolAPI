@@ -1205,6 +1205,55 @@ tbody tr:hover td { background: var(--surface-2); }
         <div id="model-chips-container" class="mt-4"></div>
       </div>
     </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">All Available Models</div>
+          <div class="section-desc">Complete list of supported models with provider and configuration details</div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-outline btn-sm" onclick="App.loadAllModels()">Refresh</button>
+        </div>
+      </div>
+      <div class="section-body tight">
+        <div class="field-row" style="margin-bottom:12px">
+          <div class="field" style="flex:1">
+            <input id="all-models-search" class="input input-sm" placeholder="Search models..." oninput="App.filterAllModels()">
+          </div>
+          <div class="field" style="width:150px">
+            <select id="all-models-provider" class="select select-sm" onchange="App.filterAllModels()">
+              <option value="">All Providers</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="openai">OpenAI</option>
+              <option value="google">Google</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="xai">xAI</option>
+              <option value="alibaba">Alibaba</option>
+              <option value="moonshot">Moonshot</option>
+              <option value="windsurf">Windsurf</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table" id="all-models-table">
+            <thead>
+              <tr>
+                <th>Model ID</th>
+                <th>Display Name</th>
+                <th>Provider</th>
+                <th>Type</th>
+                <th>Credits</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="all-models-tbody">
+              <tr class="empty-row"><td colspan="6">Loading models...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- Proxy -->
@@ -2463,6 +2512,10 @@ const App = {
     this.modelAccessConfig = accessData.mode ? accessData : { mode: 'all', list: [] };
     document.querySelector(`input[name="model-mode"][value="${this.modelAccessConfig.mode}"]`).checked = true;
     this.updateModelListUI();
+    this.loadAllModels();
+    
+    // Auto-refresh models every 30 seconds
+    this.poll('models', () => this.loadModels(), 30000);
   },
 
   updateModelListUI() {
@@ -2541,6 +2594,66 @@ const App = {
     await this.api('POST', '/model-access/remove', { model: modelId });
     this.modelAccessConfig.list = this.modelAccessConfig.list.filter(m => m !== modelId);
     this.updateModelListUI();
+  },
+
+  // ─── All Models List ───────────────────────────
+  async loadAllModels() {
+    try {
+      const data = await this.api('GET', '/models');
+      this.allModelsList = data.models || [];
+      this.renderAllModels();
+    } catch (err) {
+      this.toast('Failed to load models: ' + err.message, 'error');
+    }
+  },
+
+  renderAllModels() {
+    const search = (document.getElementById('all-models-search')?.value || '').toLowerCase();
+    const provider = document.getElementById('all-models-provider')?.value || '';
+    
+    const filtered = this.allModelsList.filter(m => {
+      if (search && !m.id.toLowerCase().includes(search) && !m.name.toLowerCase().includes(search)) return false;
+      if (provider && m.provider !== provider) return false;
+      return true;
+    });
+
+    const tbody = document.getElementById('all-models-tbody');
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No models found</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(m => {
+      const type = this.getModelType(m);
+      const status = this.getModelStatus(m);
+      return `
+        <tr>
+          <td><code>${this.esc(m.id)}</code></td>
+          <td>${this.esc(m.name)}</td>
+          <td><span class="badge ${m.provider}">${this.esc(m.provider)}</span></td>
+          <td>${type}</td>
+          <td>${m.credit || '-'}</td>
+          <td><span class="badge ${status.cls}">${status.text}</span></td>
+        </tr>`;
+    }).join('');
+  },
+
+  getModelType(m) {
+    if (m.modelUid) return 'UID';
+    if (m.enumValue) return `Enum (${m.enumValue})`;
+    return 'Legacy';
+  },
+
+  getModelStatus(m) {
+    const { mode, list } = this.modelAccessConfig || { mode: 'all', list: [] };
+    if (mode === 'all') return { cls: 'success', text: 'Available' };
+    if (mode === 'allowlist') return list.includes(m.id) ? { cls: 'success', text: 'Allowed' } : { cls: 'error', text: 'Blocked' };
+    if (mode === 'blocklist') return list.includes(m.id) ? { cls: 'error', text: 'Blocked' } : { cls: 'success', text: 'Available' };
+    return { cls: 'success', text: 'Available' };
+  },
+
+  filterAllModels() {
+    this.renderAllModels();
   },
 
   // ─── Proxy ───────────────────────────────────
