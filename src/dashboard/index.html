@@ -1521,6 +1521,7 @@ tbody tr:hover td { background: var(--surface-2); }
         <div class="page-subtitle">Manage Telegram bot integration and view active chats</div>
       </div>
       <div class="btn-group">
+        <button class="btn btn-primary" onclick="App.testTelegramConnection()">Test Connection</button>
         <button class="btn btn-outline" onclick="App.loadTelegram()">Refresh</button>
       </div>
     </div>
@@ -3266,10 +3267,42 @@ const App = {
   // ═══ System Module Functions ═══
 
   // ─── Telegram ────────────────────────────
+  async testTelegramConnection() {
+    this.toast('Testing Telegram API...', 'info');
+    try {
+      const start = Date.now();
+      const response = await this.api('GET', '/system/telegram/status');
+      const duration = Date.now() - start;
+      
+      console.log('[Dashboard] Telegram test response:', response);
+      
+      if (response.success) {
+        this.toast(`✅ Telegram API OK (${duration}ms)`, 'success');
+      } else {
+        this.toast('⚠️ API returned error', 'warn');
+      }
+    } catch (err) {
+      this.toast(`❌ Telegram API Error: ${err.message}`, 'error');
+      console.error('[Dashboard] Telegram test error:', err);
+    }
+  },
+
   async loadTelegram() {
     try {
+      console.log('[Dashboard] Loading Telegram status...');
       const response = await this.api('GET', '/system/telegram/status');
-      const status = response.status || {}; // API returns { success: true, status: {...} }
+      console.log('[Dashboard] Telegram API response:', response);
+      
+      // Handle different response structures
+      let status = {};
+      if (response && response.success && response.status) {
+        status = response.status;
+      } else if (response && response.enabled !== undefined) {
+        status = response; // Direct status object
+      } else {
+        console.warn('[Dashboard] Unexpected API response structure:', response);
+        status = { enabled: false, error: 'Invalid response' };
+      }
       
       const cards = [
         { title: 'Bot Status', value: status.enabled ? 'Online ✅' : 'Offline ❌', sub: status.enabled ? 'Polling active' : 'Bot not running', cls: status.enabled ? 'success' : 'error' },
@@ -3336,7 +3369,17 @@ const App = {
       // Auto-refresh every 5 seconds when on this panel
       this.poll('telegram', () => this.loadTelegram(), 5000);
     } catch (err) {
+      console.error('[Dashboard] Telegram load error:', err);
       this.toast('Failed to load Telegram status: ' + err.message, 'error');
+      
+      // Show error state in UI
+      document.getElementById('telegram-cards').innerHTML = `
+        <div class="card error"><div class="card-header"><div class="card-title">Error</div></div>
+        <div class="card-value">⚠️</div><div class="card-sub">Failed to load status</div></div>`;
+      document.getElementById('telegram-status').innerHTML = `
+        <div class="kv-grid">
+          <div class="kv"><div class="k">Error</div><div class="v" style="color:var(--error)">${err.message}</div></div>
+        </div>`;
     }
   },
 
