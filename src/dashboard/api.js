@@ -30,6 +30,7 @@ import {
   addCommand, removeCommand, listCommands, getCommand, executeCommand,
   executeBash, getBashHistory, getBashStats, clearBashHistory,
   setWorkingDir, getWorkingDir,
+  executeSkill, getSkillsInfo, getSkillsStatus,
 } from '../system/index.js';
 
 function json(res, status, body) {
@@ -683,6 +684,23 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
   if (subpath === '/system/bash/history' && method === 'DELETE') {
     clearBashHistory();
     return json(res, 200, { success: true });
+  }
+
+  // ─── Skills ─────────────────────────────────────────────
+  // GET /system/skills - List all skills
+  if (subpath === '/system/skills' && method === 'GET') {
+    return json(res, 200, { success: true, skills: getSkillsInfo(), status: getSkillsStatus() });
+  }
+
+  // POST /system/skills/execute - Execute a skill
+  if (subpath === '/system/skills/execute' && method === 'POST') {
+    if (!body.skill) return json(res, 400, { error: 'skill is required' });
+    try {
+      const result = await executeSkill(body.skill, body.args || {});
+      return json(res, 200, { success: true, ...result });
+    } catch (err) {
+      return json(res, 500, { error: err.message });
+    }
   }
 
   json(res, 404, { error: `Dashboard API: ${method} ${subpath} not found` });

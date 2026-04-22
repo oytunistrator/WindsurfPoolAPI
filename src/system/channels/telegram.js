@@ -12,6 +12,7 @@
 import { config, log } from '../../config.js';
 import { handleChatCompletions } from '../../handlers/chat.js';
 import { queryLocalLLM } from '../local-llm/ollama.js';
+import { parseAndExecute, getSkillsHelp } from '../skills/index.js';
 
 // Dynamic import for node-telegram-bot-api (optional dependency)
 let TelegramBot;
@@ -35,19 +36,28 @@ class TelegramChannel {
   }
 
   async initialize() {
-    if (!TelegramBot || !this.botToken) {
-      log.info('Telegram: Disabled (no token or module)');
+    if (!TelegramBot) {
+      log.warn('Telegram: node-telegram-bot-api not available. Run: npm install node-telegram-bot-api');
+      this.enabled = false;
+      return false;
+    }
+
+    if (!this.botToken) {
+      log.info('Telegram: Disabled (TELEGRAM_BOT_TOKEN not set)');
+      this.enabled = false;
       return false;
     }
 
     try {
+      log.info('Telegram: Initializing bot...');
       this.bot = new TelegramBot(this.botToken, { polling: true });
       this.setupHandlers();
       this.enabled = true;
-      log.info('Telegram: Bot initialized and polling');
+      log.info('Telegram: Bot initialized and polling successfully');
       return true;
     } catch (err) {
       log.error('Telegram: Failed to initialize:', err.message);
+      this.enabled = false;
       return false;
     }
   }
@@ -115,10 +125,54 @@ class TelegramChannel {
       
       const chat = this.getOrCreateChat(chatId);
       const status = 
-        `Current Model: ${chat.settings.model || config.defaultModel}\n` +
-        `Mode: ${chat.settings.forceLocal ? 'Local LLM' : 'Cloud API'}\n` +
-        `Context Length: ${chat.context.length} messages`;
+        `🤖 Current Model: ${chat.settings.model || config.defaultModel}\n` +
+        `⚡ Mode: ${chat.settings.forceLocal ? 'Local LLM' : 'Cloud API'}\n` +
+        `💬 Context Length: ${chat.context.length} messages\n` +
+        `📡 Bot Status: Online ✅`;
       this.bot.sendMessage(chatId, status);
+    });
+
+    // Handle /skills command
+    this.bot.onText(/\/skills/, async (msg) => {
+      const chatId = msg.chat.id;
+      if (!this.isAuthorized(chatId)) return;
+      
+      const help = `🛠 **Available Skills:**\n\n${getSkillsHelp()}`;
+      this.bot.sendMessage(chatId, help, { parse_mode: 'Markdown' });
+    });
+
+    // Handle skill commands: /weather, /search, /stock, /crypto, /market
+    this.bot.onText(/\/(weather|search|stock|crypto|market)\s*(.*)/, async (msg, match) => {
+      const chatId = msg.chat.id;
+      if (!this.isAuthorized(chatId)) return;
+
+      const skillName = match[1];
+      const args = match[2] || '';
+
+      this.bot.sendChatAction(chatId, 'typing');
+
+      try {
+        const result = await parseAndExecute(`/${skillName} ${args}`);
+        if (result && result.success) {
+          let response = '';
+          if (result.result?.formatted) {
+            response = result.result.formatted;
+            if (result.result.commentary) {
+              response += `\n\n🤖 **AI Yorumu:**\n${result.result.commentary}`;
+            }
+          } else if (result.result?.summary) {
+            response = result.result.summary;
+          } else {
+            response = JSON.stringify(result.result, null, 2);
+          }
+          this.bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+        } else {
+          this.bot.sendMessage(chatId, '❌ Skill execution failed. Please try again.');
+        }
+      } catch (err) {
+        log.error(`[TELEGRAM] Skill ${skillName} failed:`, err.message);
+        this.bot.sendMessage(chatId, `❌ Error: ${err.message}`);
+      }
     });
 
     // Handle regular messages

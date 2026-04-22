@@ -936,6 +936,10 @@ tbody tr:hover td { background: var(--surface-2); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="4,10 8,14 4,18"/></svg>
         <span>Bash Executor</span>
       </a>
+      <a href="#skills" data-panel="skills">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span>AI Skills</span>
+      </a>
     </div>
   </nav>
   <div class="footer">
@@ -1718,6 +1722,109 @@ tbody tr:hover td { background: var(--surface-2); }
       </div>
     </div>
   </section>
+
+  <!-- ════════ AI Skills ════════ -->
+  <section class="panel" id="p-skills">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">AI Skills</h1>
+        <div class="page-subtitle">Weather, Web Search, and Finance with AI-powered analysis</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="App.loadSkills()">Refresh</button>
+      </div>
+    </div>
+    <div class="metrics-grid" id="skills-cards"></div>
+
+    <!-- Weather Skill -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🌤 Weather</div>
+          <div class="section-desc">Get current weather and forecast (OpenWeatherMap + Yahoo)</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field" style="flex:1">
+            <label class="field-label">City</label>
+            <input id="skill-weather-city" class="input" placeholder="Istanbul">
+          </div>
+          <div class="field" style="width:100px">
+            <label class="field-label">Country</label>
+            <input id="skill-weather-country" class="input" placeholder="TR">
+          </div>
+        </div>
+        <div class="field-row-actions" style="margin-top:12px">
+          <button class="btn btn-primary" onclick="App.executeWeatherSkill()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12 2v6l3-3M12 8l-3-3"/><path d="M12 22v-6l3 3M12 16l-3 3"/><circle cx="12" cy="12" r="5"/></svg>
+            Get Weather
+          </button>
+        </div>
+        <div id="skill-weather-result" style="margin-top:16px"></div>
+      </div>
+    </div>
+
+    <!-- Web Search Skill -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🔍 Web Search</div>
+          <div class="section-desc">AI-powered web search with DuckDuckGo/SerpAPI</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label class="field-label">Search Query</label>
+          <input id="skill-search-query" class="input" placeholder="Latest AI developments..." onkeydown="if(event.key==='Enter')App.executeSearchSkill()">
+        </div>
+        <div class="field-row-actions" style="margin-top:12px">
+          <button class="btn btn-primary" onclick="App.executeSearchSkill()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Search
+          </button>
+        </div>
+        <div id="skill-search-result" style="margin-top:16px"></div>
+      </div>
+    </div>
+
+    <!-- Finance Skill -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📈 Finance</div>
+          <div class="section-desc">Stock & Crypto data with AI commentary (Yahoo Finance + CoinGecko)</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field" style="flex:1">
+            <label class="field-label">Stock Symbol</label>
+            <input id="skill-finance-symbol" class="input" placeholder="AAPL" onkeydown="if(event.key==='Enter')App.executeStockSkill()">
+          </div>
+          <div class="field" style="flex:1">
+            <label class="field-label">Crypto (e.g. bitcoin)</label>
+            <input id="skill-finance-crypto" class="input" placeholder="bitcoin" onkeydown="if(event.key==='Enter')App.executeCryptoSkill()">
+          </div>
+        </div>
+        <div class="field-row-actions" style="margin-top:12px">
+          <button class="btn btn-primary" onclick="App.executeStockSkill()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+            Get Stock
+          </button>
+          <button class="btn btn-primary" onclick="App.executeCryptoSkill()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h6M9 15h6"/></svg>
+            Get Crypto
+          </button>
+          <button class="btn btn-outline" onclick="App.executeMarketSkill()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+            Market Overview
+          </button>
+        </div>
+        <div id="skill-finance-result" style="margin-top:16px"></div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <!-- Login Overlay -->
@@ -1800,6 +1907,7 @@ const App = {
       experimental: 'loadExperimental',
       telegram: 'loadTelegram', ollama: 'loadOllama',
       commands: 'loadCommands', bash: 'loadBash',
+      skills: 'loadSkills',
     };
     if (loaders[panel]) this[loaders[panel]]();
   },
@@ -3196,6 +3304,129 @@ const App = {
     let i = 0;
     while (b > 1024 && i < units.length - 1) { b /= 1024; i++; }
     return `${b.toFixed(1)} ${units[i]}`;
+  },
+
+  // ─── Skills ──────────────────────────────
+  async loadSkills() {
+    try {
+      const status = await this.api('GET', '/system/status');
+      const skillsStatus = status.status?.skills || {};
+      
+      const cards = [
+        { title: 'Weather', value: skillsStatus.weather?.available ? '✓' : '✗', sub: skillsStatus.weather?.providers?.openweather ? 'API Key OK' : 'No API Key', cls: skillsStatus.weather?.available ? 'success' : 'warn' },
+        { title: 'Web Search', value: skillsStatus.websearch?.available ? '✓' : '✗', sub: skillsStatus.websearch?.providers?.serpapi ? 'SerpAPI' : 'DuckDuckGo', cls: skillsStatus.websearch?.available ? 'success' : 'warn' },
+        { title: 'Finance', value: skillsStatus.finance?.available ? '✓' : '✗', sub: 'Stocks + Crypto', cls: skillsStatus.finance?.available ? 'success' : 'warn' },
+      ];
+      document.getElementById('skills-cards').innerHTML = cards.map(c => `
+        <div class="card ${c.cls}"><div class="card-header"><div class="card-title">${c.title}</div></div>
+        <div class="card-value">${c.value}</div><div class="card-sub">${c.sub}</div></div>`).join('');
+      
+      this.poll('skills', () => this.loadSkills(), 30000);
+    } catch (err) {
+      this.toast('Failed to load skills status: ' + err.message, 'error');
+    }
+  },
+
+  async executeWeatherSkill() {
+    const city = document.getElementById('skill-weather-city').value.trim() || 'Istanbul';
+    const country = document.getElementById('skill-weather-country').value.trim() || 'TR';
+    
+    document.getElementById('skill-weather-result').innerHTML = '<div class="text-sm text-muted">Fetching weather...</div>';
+    
+    try {
+      const r = await this.api('POST', '/system/skills/execute', { skill: 'weather', args: { city, country } });
+      document.getElementById('skill-weather-result').innerHTML = `<pre class="mono" style="background:var(--surface-2);padding:12px;border-radius:6px;white-space:pre-wrap">${this.esc(r.result)}</pre>`;
+    } catch (err) {
+      document.getElementById('skill-weather-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
+    }
+  },
+
+  async executeSearchSkill() {
+    const query = document.getElementById('skill-search-query').value.trim();
+    if (!query) return this.toast('Enter a search query', 'warn');
+    
+    document.getElementById('skill-search-result').innerHTML = '<div class="text-sm text-muted">Searching with AI...</div>';
+    
+    try {
+      const r = await this.api('POST', '/system/skills/execute', { skill: 'websearch', args: { query, summarize: true } });
+      const result = r.result?.result;
+      let html = '';
+      if (result?.summary) {
+        html += `<div style="margin-bottom:12px"><strong>AI Summary:</strong></div><div style="margin-bottom:16px;line-height:1.6">${this.esc(result.summary)}</div>`;
+      }
+      if (result?.results?.length) {
+        html += `<div style="margin-bottom:8px"><strong>Sources:</strong></div>`;
+        html += result.results.map((res, i) => `
+          <div style="margin-bottom:8px;padding:8px;background:var(--surface-2);border-radius:4px">
+            <div><strong>${i+1}. ${this.esc(res.title)}</strong></div>
+            <div class="text-sm" style="color:var(--text-muted)">${this.esc(res.snippet?.slice(0, 100))}...</div>
+          </div>`).join('');
+      }
+      document.getElementById('skill-search-result').innerHTML = html || `<pre class="mono" style="background:var(--surface-2);padding:12px;border-radius:6px">${this.esc(JSON.stringify(result, null, 2))}</pre>`;
+    } catch (err) {
+      document.getElementById('skill-search-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
+    }
+  },
+
+  async executeStockSkill() {
+    const symbol = document.getElementById('skill-finance-symbol').value.trim();
+    if (!symbol) return this.toast('Enter a stock symbol', 'warn');
+    
+    document.getElementById('skill-finance-result').innerHTML = '<div class="text-sm text-muted">Fetching stock data...</div>';
+    
+    try {
+      const r = await this.api('POST', '/system/skills/execute', { skill: 'stock', args: { type: 'stock', symbol, commentary: true } });
+      const result = r.result;
+      let html = `<pre class="mono" style="background:var(--surface-2);padding:12px;border-radius:6px;white-space:pre-wrap">${this.esc(result?.formatted || 'No data')}</pre>`;
+      if (result?.commentary) {
+        html += `<div style="margin-top:12px"><strong>🤖 AI Commentary:</strong></div><div style="margin-top:8px;padding:12px;background:var(--accent-soft);border-radius:6px">${this.esc(result.commentary)}</div>`;
+      }
+      document.getElementById('skill-finance-result').innerHTML = html;
+    } catch (err) {
+      document.getElementById('skill-finance-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
+    }
+  },
+
+  async executeCryptoSkill() {
+    const coin = document.getElementById('skill-finance-crypto').value.trim();
+    if (!coin) return this.toast('Enter a crypto coin id', 'warn');
+    
+    document.getElementById('skill-finance-result').innerHTML = '<div class="text-sm text-muted">Fetching crypto data...</div>';
+    
+    try {
+      const r = await this.api('POST', '/system/skills/execute', { skill: 'crypto', args: { type: 'crypto', coin, commentary: true } });
+      const result = r.result;
+      let html = `<pre class="mono" style="background:var(--surface-2);padding:12px;border-radius:6px;white-space:pre-wrap">${this.esc(result?.formatted || 'No data')}</pre>`;
+      if (result?.commentary) {
+        html += `<div style="margin-top:12px"><strong>🤖 AI Commentary:</strong></div><div style="margin-top:8px;padding:12px;background:var(--accent-soft);border-radius:6px">${this.esc(result.commentary)}</div>`;
+      }
+      document.getElementById('skill-finance-result').innerHTML = html;
+    } catch (err) {
+      document.getElementById('skill-finance-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
+    }
+  },
+
+  async executeMarketSkill() {
+    document.getElementById('skill-finance-result').innerHTML = '<div class="text-sm text-muted">Fetching market data...</div>';
+    
+    try {
+      const r = await this.api('POST', '/system/skills/execute', { skill: 'market', args: { type: 'market' } });
+      const result = r.result;
+      let html = '<div style="margin-bottom:12px"><strong>Popular Cryptocurrencies:</strong></div>';
+      if (result?.data?.length) {
+        html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px">`;
+        html += result.data.map(c => `
+          <div style="padding:10px;background:var(--surface-2);border-radius:6px">
+            <div><strong>${this.esc(c.name)}</strong> (${this.esc(c.symbol)})</div>
+            <div>$${c.price?.toLocaleString()}</div>
+            <div class="text-sm" style="color:${c.changePercent >= 0 ? 'var(--success)' : 'var(--error)'}">${c.changePercent >= 0 ? '+' : ''}${c.changePercent?.toFixed(2)}%</div>
+          </div>`).join('');
+        html += '</div>';
+      }
+      document.getElementById('skill-finance-result').innerHTML = html;
+    } catch (err) {
+      document.getElementById('skill-finance-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
+    }
   },
 
   // ─── Custom Commands ─────────────────────

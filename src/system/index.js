@@ -49,6 +49,17 @@ import {
   getBashStatus,
 } from './bash/bash-executor.js';
 
+import {
+  executeSkill,
+  getSkillsInfo,
+  getSkillsStatus,
+  parseAndExecute,
+  getSkillsHelp,
+  weatherSkill,
+  webSearchSkill,
+  financeSkill,
+} from './skills/index.js';
+
 // Initialize all system components
 export async function initializeSystem() {
   log.info('[SYSTEM] Initializing system components...');
@@ -115,6 +126,16 @@ export {
   getBashStats,
   clearBashHistory,
   getBashStatus,
+  
+  // Skills
+  executeSkill,
+  getSkillsInfo,
+  getSkillsStatus,
+  parseAndExecute,
+  getSkillsHelp,
+  weatherSkill,
+  webSearchSkill,
+  financeSkill,
 };
 
 // Get complete system status
@@ -126,5 +147,6 @@ export function getSystemStatus() {
     commands: {
       count: listCommands().length,
     },
+    skills: getSkillsStatus(),
   };
 }
