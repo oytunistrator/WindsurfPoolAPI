@@ -141,8 +141,8 @@ class TelegramChannel {
       this.bot.sendMessage(chatId, help, { parse_mode: 'Markdown' });
     });
 
-    // Handle skill commands: /weather, /search, /stock, /crypto, /market
-    this.bot.onText(/\/(weather|search|stock|crypto|market)\s*(.*)/, async (msg, match) => {
+    // Handle skill commands: /weather, /search, /stock, /crypto, /market, /youtube
+    this.bot.onText(/\/(weather|search|stock|crypto|market|youtube)\s*(.*)/, async (msg, match) => {
       const chatId = msg.chat.id;
       if (!this.isAuthorized(chatId)) return;
 

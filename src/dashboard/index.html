@@ -1728,13 +1728,48 @@ tbody tr:hover td { background: var(--surface-2); }
     <div class="page-header">
       <div>
         <h1 class="page-title">AI Skills</h1>
-        <div class="page-subtitle">Weather, Web Search, and Finance with AI-powered analysis</div>
+        <div class="page-subtitle">YouTube, Weather, Web Search, and Finance with AI-powered analysis</div>
       </div>
       <div class="btn-group">
         <button class="btn btn-outline" onclick="App.loadSkills()">Refresh</button>
       </div>
     </div>
     <div class="metrics-grid" id="skills-cards"></div>
+
+    <!-- YouTube Skill -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🎬 YouTube Search</div>
+          <div class="section-desc">AI-powered YouTube video search and analysis</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label class="field-label">Search Query or Video ID</label>
+          <input id="skill-youtube-query" class="input" placeholder="Node.js tutorial, Python course, or dQw4w9WgXcQ" onkeydown="if(event.key==='Enter')App.executeYouTubeSkill()">
+        </div>
+        <div class="field-row" style="margin-top:12px">
+          <label class="checkbox">
+            <input type="checkbox" id="skill-youtube-analyze" checked>
+            <span class="box"></span>
+            <span>AI Analysis</span>
+          </label>
+          <label class="checkbox" style="margin-left:16px">
+            <input type="checkbox" id="skill-youtube-detailed">
+            <span class="box"></span>
+            <span>Detailed Analysis</span>
+          </label>
+        </div>
+        <div class="field-row-actions" style="margin-top:12px">
+          <button class="btn btn-primary" onclick="App.executeYouTubeSkill()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
+            Search YouTube
+          </button>
+        </div>
+        <div id="skill-youtube-result" style="margin-top:16px"></div>
+      </div>
+    </div>
 
     <!-- Weather Skill -->
     <div class="section">
@@ -3313,6 +3348,7 @@ const App = {
       const skillsStatus = status.status?.skills || {};
       
       const cards = [
+        { title: 'YouTube', value: skillsStatus.youtube?.available ? '✓' : '✗', sub: skillsStatus.youtube?.available ? 'YouTube API Ready' : 'No API Key', cls: skillsStatus.youtube?.available ? 'success' : 'warn' },
         { title: 'Weather', value: skillsStatus.weather?.available ? '✓' : '✗', sub: skillsStatus.weather?.providers?.openweather ? 'API Key OK' : 'No API Key', cls: skillsStatus.weather?.available ? 'success' : 'warn' },
         { title: 'Web Search', value: skillsStatus.websearch?.available ? '✓' : '✗', sub: skillsStatus.websearch?.providers?.serpapi ? 'SerpAPI' : 'DuckDuckGo', cls: skillsStatus.websearch?.available ? 'success' : 'warn' },
         { title: 'Finance', value: skillsStatus.finance?.available ? '✓' : '✗', sub: 'Stocks + Crypto', cls: skillsStatus.finance?.available ? 'success' : 'warn' },
@@ -3338,6 +3374,45 @@ const App = {
       document.getElementById('skill-weather-result').innerHTML = `<pre class="mono" style="background:var(--surface-2);padding:12px;border-radius:6px;white-space:pre-wrap">${this.esc(r.result)}</pre>`;
     } catch (err) {
       document.getElementById('skill-weather-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
+    }
+  },
+
+  async executeYouTubeSkill() {
+    const query = document.getElementById('skill-youtube-query').value.trim();
+    if (!query) return this.toast('Enter a search query or video ID', 'warn');
+    
+    const analyze = document.getElementById('skill-youtube-analyze')?.checked ?? true;
+    const detailed = document.getElementById('skill-youtube-detailed')?.checked ?? false;
+    
+    document.getElementById('skill-youtube-result').innerHTML = '<div class="text-sm text-muted">Searching YouTube...</div>';
+    
+    try {
+      // Check if it's a video ID (11 chars, alphanumeric)
+      const isVideoId = /^[a-zA-Z0-9_-]{11}$/.test(query);
+      const args = isVideoId 
+        ? { videoId: query, analyze, language: 'tr' }
+        : { query, maxResults: 5, analyze, detailed, language: 'tr' };
+      
+      const r = await this.api('POST', '/system/skills/execute', { skill: 'youtube', args });
+      const result = r.result;
+      
+      let html = '';
+      if (result?.type === 'video') {
+        html = `<pre class="mono" style="background:var(--surface-2);padding:12px;border-radius:6px;white-space:pre-wrap">${this.esc(result.formatted || 'No data')}</pre>`;
+        if (result?.commentary) {
+          html += `<div style="margin-top:12px"><strong>🤖 AI Commentary:</strong></div><div style="margin-top:8px;padding:12px;background:var(--accent-soft);border-radius:6px">${this.esc(result.commentary)}</div>`;
+        }
+      } else {
+        // Search results
+        html = `<pre class="mono" style="background:var(--surface-2);padding:12px;border-radius:6px;white-space:pre-wrap">${this.esc(result.formatted || 'No results')}</pre>`;
+        if (result?.analysis) {
+          html += `<div style="margin-top:12px"><strong>🤖 AI Analysis:</strong></div><div style="margin-top:8px;padding:12px;background:var(--accent-soft);border-radius:6px;line-height:1.6">${this.esc(result.analysis)}</div>`;
+        }
+      }
+      
+      document.getElementById('skill-youtube-result').innerHTML = html;
+    } catch (err) {
+      document.getElementById('skill-youtube-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
     }
   },
 

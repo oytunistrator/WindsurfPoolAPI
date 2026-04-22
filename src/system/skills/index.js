@@ -11,9 +11,10 @@ import { log } from '../../config.js';
 import { weatherSkill, getWeather, formatWeather } from './weather.js';
 import { webSearchSkill, searchWeb, quickSearch } from './websearch.js';
 import { financeSkill, getStock, getCrypto, quickQuote } from './finance.js';
+import { youTubeSkill, searchYouTube, getVideoDetails, quickYouTubeSearch } from './youtube.js';
 
 // Export all skills
-export { weatherSkill, webSearchSkill, financeSkill };
+export { weatherSkill, webSearchSkill, financeSkill, youTubeSkill };
 
 // Export individual functions
 export {
@@ -27,6 +28,10 @@ export {
   getStock,
   getCrypto,
   quickQuote,
+  // YouTube
+  searchYouTube,
+  getVideoDetails,
+  quickYouTubeSearch,
 };
 
 // Skills registry
@@ -78,6 +83,16 @@ export const skillsRegistry = {
     examples: [
       '/market',
       '/market indices',
+    ],
+  },
+  youtube: {
+    name: 'youtube',
+    description: 'Search YouTube videos with AI analysis',
+    skill: youTubeSkill,
+    examples: [
+      '/youtube Node.js tutorial',
+      '/youtube Python beginner course',
+      '/youtube dQw4w9WgXcQ',
     ],
   },
 };
@@ -136,6 +151,10 @@ export function getSkillsStatus() {
         duckduckgo: true,
         serpapi: !!process.env.SERPAPI_KEY,
       },
+    },
+    youtube: {
+      available: !!process.env.YOUTUBE_API_KEY,
+      provider: 'YouTube Data API v3',
     },
     finance: {
       available: true,

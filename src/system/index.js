@@ -58,6 +58,7 @@ import {
   weatherSkill,
   webSearchSkill,
   financeSkill,
+  youTubeSkill,
 } from './skills/index.js';
 
 // Initialize all system components
@@ -136,6 +137,7 @@ export {
   weatherSkill,
   webSearchSkill,
   financeSkill,
+  youTubeSkill,
 };
 
 // Get complete system status
