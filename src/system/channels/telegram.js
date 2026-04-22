@@ -87,7 +87,7 @@ class TelegramChannel {
         this.bot.sendChatAction(chatId, 'typing');
         try {
           const result = await this.executeCustomCommand(chatId, commandName, args);
-          this.bot.sendMessage(chatId, result, { parse_mode: 'Markdown' });
+          this.bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
         } catch (err) {
           this.bot.sendMessage(chatId, `❌ Command error: ${err.message}`);
         }
@@ -127,7 +127,18 @@ class TelegramChannel {
       {
         name: 'start',
         description: 'Start the bot and show welcome message',
-        template: 'Welcome to WindsurfPoolAPI Bot! 🤖\n\nI can help you with:\n• AI Chat (Cloud API or Local LLM)\n• Weather Info 🌤\n• Web Search 🔍\n• Finance Data 📈\n• YouTube Search 🎬\n\nSend me a message or use commands:\n{{commands}}',
+        template: `Welcome to WindsurfPoolAPI Bot! 🤖
+
+I can help you with:
+• AI Chat (Cloud API or Local LLM)
+• Weather Info 🌤
+• Web Search 🔍
+• Finance Data 📈
+• YouTube Search 🎬
+• AI Bash Commands 💻
+
+Send me a message or use commands:
+{{commands}}`,
         action: 'start',
       },
       {
@@ -158,26 +169,48 @@ class TelegramChannel {
       {
         name: 'status',
         description: 'Check bot and system status',
-        template: '📊 **Bot Status**\n\n🤖 Model: {{model}}\n⚡ Mode: {{mode}}\n💬 Messages: {{contextLength}}\n📡 Status: Online ✅\n\nUse /skills to see all available skills.',
+        template: `📊 Bot Status
+
+🤖 Model: {{model}}
+⚡ Mode: {{mode}}
+💬 Messages: {{contextLength}}
+📡 Status: Online ✅
+
+Use /skills to see all available skills.`,
         action: 'status',
       },
       {
         name: 'commands',
         description: 'List all available commands',
-        template: '📋 **Available Commands**\n\n{{commandList}}\n\n💡 Tip: Use /help <command> for details.',
+        template: `📋 Available Commands
+
+{{commandList}}
+
+💡 Tip: Use /help <command> for details.`,
         action: 'listCommands',
       },
       {
         name: 'help',
         description: 'Show help for a specific command',
-        template: '**Help: /{{command}}**\n\n{{description}}\n\n📝 Usage: /{{command}} {{params}}',
+        template: `Help: /{{command}}
+
+{{description}}
+
+📝 Usage: /{{command}} {{params}}`,
         parameters: [{ name: 'command', required: true, type: 'string' }],
         action: 'help',
       },
       {
         name: 'skills',
         description: 'List all AI skills (weather, search, finance, youtube)',
-        template: '{{skillsHelp}}\n\n💡 Use these skills anytime by typing:\n/weather Istanbul\n/search latest AI news\n/stock AAPL\n/youtube Node.js tutorial',
+        template: `{{skillsHelp}}
+
+💡 Use these skills anytime by typing:
+/weather Istanbul
+/search latest AI news
+/stock AAPL
+/youtube Node.js tutorial
+/bash show disk usage`,
         action: 'skills',
       },
     ];
@@ -289,7 +322,7 @@ class TelegramChannel {
   async handleBuiltInCommand(chatId, commandName, args, msg) {
     switch (commandName) {
       case 'skills':
-        this.bot.sendMessage(chatId, `🛠 **Available Skills:**\n\n${getSkillsHelp()}`, { parse_mode: 'Markdown' });
+        this.bot.sendMessage(chatId, `🛠 <b>Available Skills:</b>\n\n${getSkillsHelp()}`, { parse_mode: 'HTML' });
         break;
       
       default:
@@ -358,10 +391,10 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
         
         output += `⏱️ Süre: ${result.duration}ms | Çıkış Kodu: ${result.exitCode}`;
         
-        this.bot.sendMessage(chatId, output, { parse_mode: 'Markdown' });
+        this.bot.sendMessage(chatId, output, { parse_mode: 'HTML' });
         
       } catch (err) {
-        this.bot.sendMessage(chatId, `❌ **Hata:** ${err.message}`, { parse_mode: 'Markdown' });
+        this.bot.sendMessage(chatId, `❌ <b>Hata:</b> ${err.message}`, { parse_mode: 'HTML' });
       }
       
       // Clear pending command
@@ -370,7 +403,7 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
       
     } else if (response === 'hayır' || response === 'no' || response === 'n' || response === 'h') {
       // User rejected
-      this.bot.sendMessage(chatId, `❌ Komut iptal edildi: \`${pendingBash.command}\``, { parse_mode: 'Markdown' });
+      this.bot.sendMessage(chatId, `❌ Komut iptal edildi: <code>${this.escapeHtml(pendingBash.command)}</code>`, { parse_mode: 'HTML' });
       delete chat.pendingBashCommand;
       return true;
     }
@@ -402,7 +435,7 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
         
         // Check if AI marked it as unsafe
         if (generatedCommand.startsWith('UNSAFE:')) {
-          this.bot.sendMessage(chatId, `⚠️ **Güvenlik Uyarısı:**\n${generatedCommand.substring(7).trim()}`, { parse_mode: 'Markdown' });
+          this.bot.sendMessage(chatId, `⚠️ <b>Güvenlik Uyarısı:</b>\n${this.escapeHtml(generatedCommand.substring(7).trim())}`, { parse_mode: 'HTML' });
           return;
         }
 
@@ -415,9 +448,9 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
         };
 
         // Ask for confirmation
-        const confirmMsg = `🤖 **AI Oluşturduğu Komut:**\n\`\`\`bash\n${generatedCommand}\n\`\`\`\n\n⚠️ **Bu komutu çalıştırmak istiyor musunuz?**\n\nYanıt: **evet** (çalıştır) veya **hayır** (iptal)`;
+        const confirmMsg = `🤖 <b>AI Oluşturduğu Komut:</b>\n<pre><code>${this.escapeHtml(generatedCommand)}</code></pre>\n\n⚠️ <b>Bu komutu çalıştırmak istiyor musunuz?</b>\n\nYanıt: <b>evet</b> (çalıştır) veya <b>hayır</b> (iptal)`;
         
-        this.bot.sendMessage(chatId, confirmMsg, { parse_mode: 'Markdown' });
+        this.bot.sendMessage(chatId, confirmMsg, { parse_mode: 'HTML' });
         
       } catch (err) {
         log.error(`[TELEGRAM] Bash command generation failed: ${err.message}`);
@@ -449,7 +482,7 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
           } else {
             response = JSON.stringify(result.result, null, 2);
           }
-          this.bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+          this.bot.sendMessage(chatId, response, { parse_mode: 'HTML' });
         } else {
           this.bot.sendMessage(chatId, '❌ Skill execution failed. Please try again.');
         }
@@ -556,10 +589,10 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
       if (replyText.length > MAX_LENGTH) {
         const chunks = this.splitMessage(replyText, MAX_LENGTH);
         for (const chunk of chunks) {
-          await this.bot.sendMessage(chatId, chunk, { parse_mode: 'Markdown' });
+          await this.bot.sendMessage(chatId, this.escapeHtml(chunk));
         }
       } else {
-        await this.bot.sendMessage(chatId, replyText, { parse_mode: 'Markdown' });
+        await this.bot.sendMessage(chatId, this.escapeHtml(replyText));
       }
 
       log.info(`[TELEGRAM] Response sent to ${chatId}: ${replyText.slice(0, 50)}...`);
@@ -599,6 +632,18 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
 
     const response = await queryLocalLLM(prompt, chat.settings.model);
     return { isRateLimit: false, content: response };
+  }
+
+  /**
+   * Escape HTML special characters for Telegram HTML parse mode
+   */
+  escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   splitMessage(text, maxLength) {
