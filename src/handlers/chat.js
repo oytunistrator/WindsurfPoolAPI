@@ -155,6 +155,15 @@ export async function handleChatCompletions(body) {
   };
   log.debug(`[CHAT REQUEST] ${JSON.stringify(debugBody)}`);
 
+  // Debug: log message content preview (first 200 chars of each message)
+  if (messages?.length) {
+    const msgPreview = messages.map((m, i) => {
+      const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+      return `[${i}]${m.role}:${content.slice(0, 200)}${content.length > 200 ? '...' : ''}`;
+    });
+    log.debug(`[MESSAGES] ${msgPreview.join(' | ')}`);
+  }
+
   const modelKey = resolveModel(reqModel || config.defaultModel);
   const modelInfo = getModelInfo(modelKey);
   const displayModel = modelInfo?.name || reqModel || config.defaultModel;
