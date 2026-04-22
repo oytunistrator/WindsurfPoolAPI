@@ -918,6 +918,25 @@ tbody tr:hover td { background: var(--surface-2); }
         <span>Experimental</span>
       </a>
     </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Integrations</div>
+      <a href="#telegram" data-panel="telegram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21.198 2.433a2.239 2.239 0 0 0-1.65.738l-9.672 11.87-4.273-2.713a1.5 1.5 0 0 0-2.06.456l-1.5 2.5a1.5 1.5 0 0 0 .456 2.06l6.5 4.125a1.5 1.5 0 0 0 2.06-.456l11.5-14.125a2.239 2.239 0 0 0-1.65-.738z"/></svg>
+        <span>Telegram Bot</span>
+      </a>
+      <a href="#ollama" data-panel="ollama">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
+        <span>Local LLM (Ollama)</span>
+      </a>
+      <a href="#commands" data-panel="commands">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
+        <span>Custom Commands</span>
+      </a>
+      <a href="#bash" data-panel="bash">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="4,10 8,14 4,18"/></svg>
+        <span>Bash Executor</span>
+      </a>
+    </div>
   </nav>
   <div class="footer">
     <span>© Windsurf</span>
@@ -1436,6 +1455,216 @@ tbody tr:hover td { background: var(--surface-2); }
             <div style="font-weight:500">Enable Model Identity Injection</div>
             <div class="text-sm text-muted">On by default. Supports Anthropic / OpenAI / Google / DeepSeek / xAI and other providers.</div>
           </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Telegram Bot ════════ -->
+  <section class="panel" id="p-telegram">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Telegram Bot</h1>
+        <div class="page-subtitle">Manage Telegram bot integration and view active chats</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="App.loadTelegram()">Refresh</button>
+      </div>
+    </div>
+    <div class="metrics-grid" id="telegram-cards"></div>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Bot Status</div>
+          <div class="section-desc">Current Telegram bot configuration</div>
+        </div>
+      </div>
+      <div class="section-body" id="telegram-status">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Active Chats</div>
+          <div class="section-desc">Currently active Telegram conversations</div>
+        </div>
+      </div>
+      <div class="section-body tight">
+        <div class="table-wrap">
+          <table class="table" id="telegram-chats-table">
+            <thead><tr><th>Chat ID</th><th>Model</th><th>Mode</th><th>Messages</th><th>Created</th></tr></thead>
+            <tbody><tr class="empty-row"><td colspan="5">No active chats</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Ollama Local LLM ════════ -->
+  <section class="panel" id="p-ollama">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Local LLM (Ollama)</h1>
+        <div class="page-subtitle">Manage Ollama instance and local models for fallback</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="App.loadOllama()">Refresh</button>
+      </div>
+    </div>
+    <div class="metrics-grid" id="ollama-cards"></div>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Ollama Status</div>
+          <div class="section-desc">Connection and configuration</div>
+        </div>
+      </div>
+      <div class="section-body" id="ollama-status">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Available Models</div>
+          <div class="section-desc">Models currently available in Ollama</div>
+        </div>
+        <div class="btn-group">
+          <div class="field" style="margin:0">
+            <input id="ollama-pull-input" class="input input-sm" placeholder="Model name (e.g. llama3.2)" style="width:220px">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="App.pullOllamaModel()">Pull Model</button>
+        </div>
+      </div>
+      <div class="section-body tight">
+        <div class="table-wrap">
+          <table class="table" id="ollama-models-table">
+            <thead><tr><th>Name</th><th>Size</th><th>Modified</th></tr></thead>
+            <tbody><tr class="empty-row"><td colspan="3">No models found</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Custom Commands ════════ -->
+  <section class="panel" id="p-commands">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Custom Commands</h1>
+        <div class="page-subtitle">Define and manage custom slash commands</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="App.loadCommands()">Refresh</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Add New Command</div>
+          <div class="section-desc">Create a custom command with template and parameters</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Command Name</label>
+            <input id="cmd-name" class="input" placeholder="weather">
+          </div>
+          <div class="field" style="flex:2">
+            <label class="field-label">Description</label>
+            <input id="cmd-desc" class="input" placeholder="Get weather for a city">
+          </div>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label class="field-label">Template <span class="text-muted">(use {{param}} for variables)</span></label>
+          <textarea id="cmd-template" class="input" rows="3" placeholder="What's the weather like in {{city}}?"></textarea>
+        </div>
+        <div class="field-row-actions" style="margin-top:12px">
+          <button class="btn btn-primary" onclick="App.addCommand()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Command
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Command List</div>
+          <div class="section-desc">All defined custom commands</div>
+        </div>
+      </div>
+      <div class="section-body tight">
+        <div class="table-wrap">
+          <table class="table" id="commands-table">
+            <thead><tr><th>Command</th><th>Description</th><th>Parameters</th><th>Actions</th></tr></thead>
+            <tbody id="commands-tbody"><tr class="empty-row"><td colspan="4">No commands defined</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Bash Executor ════════ -->
+  <section class="panel" id="p-bash">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Bash Executor</h1>
+        <div class="page-subtitle">Execute bash commands with history and safety controls</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="App.loadBash()">Refresh</button>
+        <button class="btn btn-outline" onclick="App.clearBashHistory()">Clear History</button>
+      </div>
+    </div>
+    <div class="metrics-grid" id="bash-cards"></div>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Execute Command</div>
+          <div class="section-desc">Run a bash command (blocked commands: rm, mv, dd, etc.)</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field" style="flex:1">
+            <label class="field-label">Command</label>
+            <input id="bash-command" class="input mono" placeholder="ls -la" onkeydown="if(event.key==='Enter')App.executeBash()">
+          </div>
+          <div class="field" style="width:120px">
+            <label class="field-label">Timeout (ms)</label>
+            <input id="bash-timeout" class="input" type="number" value="30000">
+          </div>
+        </div>
+        <div class="field-row-actions" style="margin-top:12px">
+          <button class="btn btn-primary" onclick="App.executeBash()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            Execute
+          </button>
+          <div class="field" style="margin-left:auto;margin-bottom:0">
+            <label class="field-label">Working Directory</label>
+            <input id="bash-cwd" class="input mono" value="." style="width:300px">
+            <button class="btn btn-sm btn-outline" onclick="App.setBashCwd()" style="margin-left:8px">Set</button>
+          </div>
+        </div>
+        <div id="bash-result" style="margin-top:16px"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Command History</div>
+          <div class="section-desc">Recent bash command executions</div>
+        </div>
+      </div>
+      <div class="section-body tight">
+        <div class="table-wrap">
+          <table class="table" id="bash-history-table">
+            <thead><tr><th>Command</th><th>Exit</th><th>Duration</th><th>Time</th><th>Output Preview</th></tr></thead>
+            <tbody id="bash-history-tbody"><tr class="empty-row"><td colspan="5">No commands executed</td></tr></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -2758,7 +2987,222 @@ const App = {
       fallback();
     }
   },
-  esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); },
+  esc(s) { return String(s == null ? '' : '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); },
+
+  // ═══ System Module Functions ═══
+
+  // ─── Telegram ────────────────────────────
+  async loadTelegram() {
+    try {
+      const status = await this.api('GET', '/system/telegram/status');
+      const cards = [
+        { title: 'Bot Status', value: status.enabled ? 'Online' : 'Offline', sub: status.enabled ? 'Polling active' : 'Disabled', cls: status.enabled ? 'success' : 'warn' },
+        { title: 'Active Chats', value: status.activeChats || 0, sub: 'conversations', cls: 'info' },
+        { title: 'Allowed IDs', value: status.allowedChatIds?.length || 'All', sub: 'whitelisted', cls: 'info' },
+      ];
+      document.getElementById('telegram-cards').innerHTML = cards.map(c => `
+        <div class="card ${c.cls}"><div class="card-header"><div class="card-title">${c.title}</div></div>
+        <div class="card-value">${c.value}</div><div class="card-sub">${c.sub}</div></div>`).join('');
+      
+      document.getElementById('telegram-status').innerHTML = `
+        <div class="kv-grid">
+          <div class="kv"><div class="k">Status</div><div class="v"><span class="badge ${status.enabled ? 'success' : 'error'}">${status.enabled ? 'Enabled' : 'Disabled'}</span></div></div>
+          <div class="kv"><div class="k">Active Chats</div><div class="v">${status.activeChats || 0}</div></div>
+          <div class="kv"><div class="k">Allowed Chat IDs</div><div class="v">${status.allowedChatIds?.join(', ') || 'All chats allowed'}</div></div>
+        </div>`;
+      
+      // Chat list placeholder - would need additional API endpoint for detailed chat info
+    } catch (err) {
+      this.toast('Failed to load Telegram status: ' + err.message, 'error');
+    }
+  },
+
+  // ─── Ollama ────────────────────────────────
+  async loadOllama() {
+    try {
+      const status = await this.api('GET', '/system/ollama/status');
+      const cards = [
+        { title: 'Ollama', value: status.available ? 'Online' : 'Offline', sub: status.config?.host || 'localhost', cls: status.available ? 'success' : 'error' },
+        { title: 'Models', value: status.models || 0, sub: 'available', cls: status.available ? 'success' : 'warn' },
+        { title: 'Default', value: status.config?.defaultModel || '-', sub: 'fallback model', cls: 'info' },
+      ];
+      document.getElementById('ollama-cards').innerHTML = cards.map(c => `
+        <div class="card ${c.cls}"><div class="card-header"><div class="card-title">${c.title}</div></div>
+        <div class="card-value" style="font-size:18px">${c.value}</div><div class="card-sub">${c.sub}</div></div>`).join('');
+
+      document.getElementById('ollama-status').innerHTML = `
+        <div class="kv-grid">
+          <div class="kv"><div class="k">Status</div><div class="v"><span class="badge ${status.available ? 'success' : 'error'}">${status.available ? 'Connected' : 'Disconnected'}</span></div></div>
+          <div class="kv"><div class="k">Host</div><div class="v mono">${status.config?.host || '-'}</div></div>
+          <div class="kv"><div class="k">Default Model</div><div class="v">${status.config?.defaultModel || '-'}</div></div>
+        </div>`;
+
+      if (status.available) {
+        const models = await this.api('GET', '/system/ollama/models');
+        const tbody = document.querySelector('#ollama-models-table tbody');
+        tbody.innerHTML = models.models?.map(m => `
+          <tr><td><code>${this.esc(m.name)}</code></td>
+          <td>${this._fmtBytes(m.size)}</td>
+          <td>${new Date(m.modified).toLocaleString()}</td></tr>`).join('') 
+          || '<tr class="empty-row"><td colspan="3">No models</td></tr>';
+      }
+    } catch (err) {
+      this.toast('Failed to load Ollama status: ' + err.message, 'error');
+    }
+  },
+
+  async pullOllamaModel() {
+    const model = document.getElementById('ollama-pull-input').value.trim();
+    if (!model) return this.toast('Enter a model name', 'warn');
+    
+    this.toast(`Pulling model ${model}...`, 'info');
+    try {
+      const r = await this.api('POST', '/system/ollama/pull', { model });
+      if (r.success) {
+        this.toast(`Model ${model} pulled successfully`, 'success');
+        this.loadOllama();
+      } else {
+        this.toast('Pull failed: ' + r.status, 'error');
+      }
+    } catch (err) {
+      this.toast('Failed to pull model: ' + err.message, 'error');
+    }
+  },
+
+  _fmtBytes(b) {
+    if (!b) return '-';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    while (b > 1024 && i < units.length - 1) { b /= 1024; i++; }
+    return `${b.toFixed(1)} ${units[i]}`;
+  },
+
+  // ─── Custom Commands ─────────────────────
+  async loadCommands() {
+    try {
+      const r = await this.api('GET', '/system/commands');
+      const tbody = document.getElementById('commands-tbody');
+      tbody.innerHTML = r.commands?.map(c => `
+        <tr>
+          <td><code>/${this.esc(c.name)}</code></td>
+          <td>${this.esc(c.description)}</td>
+          <td>${c.parameters?.map(p => `<code>${this.esc(p.name)}</code>`).join(', ') || '-'}</td>
+          <td class="nowrap">
+            <button class="btn btn-error btn-xs" onclick="App.deleteCommand('${c.name}')">Delete</button>
+          </td>
+        </tr>`).join('') || '<tr class="empty-row"><td colspan="4">No commands defined</td></tr>';
+    } catch (err) {
+      this.toast('Failed to load commands: ' + err.message, 'error');
+    }
+  },
+
+  async addCommand() {
+    const name = document.getElementById('cmd-name').value.trim();
+    const description = document.getElementById('cmd-desc').value.trim();
+    const template = document.getElementById('cmd-template').value.trim();
+    
+    if (!name || !template) return this.toast('Name and template are required', 'warn');
+    
+    try {
+      await this.api('POST', '/system/commands', { name, description, template });
+      this.toast(`Command /${name} added`, 'success');
+      document.getElementById('cmd-name').value = '';
+      document.getElementById('cmd-desc').value = '';
+      document.getElementById('cmd-template').value = '';
+      this.loadCommands();
+    } catch (err) {
+      this.toast('Failed to add command: ' + err.message, 'error');
+    }
+  },
+
+  async deleteCommand(name) {
+    const ok = await this.confirm('Delete Command', `Are you sure you want to delete /${name}?`);
+    if (!ok) return;
+    try {
+      await this.api('DELETE', `/system/commands/${name}`);
+      this.toast(`Command /${name} deleted`, 'success');
+      this.loadCommands();
+    } catch (err) {
+      this.toast('Failed to delete command: ' + err.message, 'error');
+    }
+  },
+
+  // ─── Bash Executor ───────────────────────
+  async loadBash() {
+    try {
+      const [status, stats, history] = await Promise.all([
+        this.api('GET', '/system/bash/status'),
+        this.api('GET', '/system/bash/stats'),
+        this.api('GET', '/system/bash/history'),
+      ]);
+
+      const cards = [
+        { title: 'Total Commands', value: stats.total || 0, sub: 'executed', cls: 'info' },
+        { title: 'Success Rate', value: `${stats.successRate || 0}%`, sub: 'successful', cls: stats.successRate > 90 ? 'success' : 'warn' },
+        { title: 'Avg Duration', value: `${Math.round(stats.avgDuration || 0)}ms`, sub: 'per command', cls: 'info' },
+      ];
+      document.getElementById('bash-cards').innerHTML = cards.map(c => `
+        <div class="card ${c.cls}"><div class="card-header"><div class="card-title">${c.title}</div></div>
+        <div class="card-value">${c.value}</div><div class="card-sub">${c.sub}</div></div>`).join('');
+
+      document.getElementById('bash-cwd').value = status.workingDir || '.';
+
+      const tbody = document.getElementById('bash-history-tbody');
+      tbody.innerHTML = history.history?.slice(0, 20).map(h => `
+        <tr>
+          <td><code class="mono">${this.esc(h.command.slice(0, 50))}${h.command.length > 50 ? '...' : ''}</code></td>
+          <td><span class="badge ${h.exitCode === 0 ? 'success' : 'error'}">${h.exitCode}</span></td>
+          <td>${h.duration}ms</td>
+          <td>${new Date(h.timestamp).toLocaleString()}</td>
+          <td class="mono text-sm">${this.esc(h.stdout?.slice(0, 60) || h.stderr?.slice(0, 60) || '-')}...</td>
+        </tr>`).join('') || '<tr class="empty-row"><td colspan="5">No commands executed</td></tr>';
+    } catch (err) {
+      this.toast('Failed to load bash status: ' + err.message, 'error');
+    }
+  },
+
+  async executeBash() {
+    const command = document.getElementById('bash-command').value.trim();
+    if (!command) return this.toast('Enter a command', 'warn');
+    
+    const timeout = parseInt(document.getElementById('bash-timeout').value, 10) || 30000;
+    
+    document.getElementById('bash-result').innerHTML = '<div class="text-sm text-muted">Executing...</div>';
+    
+    try {
+      const r = await this.api('POST', '/system/bash/execute', { command, timeout });
+      const output = r.success 
+        ? `<div class="text-sm" style="color:var(--success)">Exit code: ${r.exitCode}</div><pre class="mono" style="margin-top:8px;background:var(--surface-2);padding:12px;border-radius:6px;max-height:200px;overflow:auto">${this.esc(r.stdout || 'No output')}</pre>`
+        : `<div class="text-sm" style="color:var(--error)">Exit code: ${r.exitCode}</div><pre class="mono" style="margin-top:8px;background:var(--error-soft);padding:12px;border-radius:6px;max-height:200px;overflow:auto">${this.esc(r.stderr || r.stdout || 'Error')}</pre>`;
+      
+      document.getElementById('bash-result').innerHTML = output;
+      this.loadBash(); // Refresh history
+    } catch (err) {
+      document.getElementById('bash-result').innerHTML = `<div class="text-sm" style="color:var(--error)">Error: ${this.esc(err.message)}</div>`;
+    }
+  },
+
+  async setBashCwd() {
+    const cwd = document.getElementById('bash-cwd').value.trim();
+    try {
+      const r = await this.api('POST', '/system/bash/cwd', { cwd });
+      this.toast(`Working directory set to: ${r.cwd}`, 'success');
+    } catch (err) {
+      this.toast('Failed to set directory: ' + err.message, 'error');
+    }
+  },
+
+  async clearBashHistory() {
+    const ok = await this.confirm('Clear History', 'Are you sure you want to clear all bash command history?');
+    if (!ok) return;
+    try {
+      await this.api('DELETE', '/system/bash/history');
+      this.toast('History cleared', 'success');
+      this.loadBash();
+    } catch (err) {
+      this.toast('Failed to clear history: ' + err.message, 'error');
+    }
+  },
 };
 
 window.addEventListener('DOMContentLoaded', () => App.init());
