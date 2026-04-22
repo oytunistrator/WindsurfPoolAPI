@@ -3454,9 +3454,9 @@ const App = {
       
       const cards = [
         { title: 'YouTube', value: skillsStatus.youtube?.available ? '✓' : '✗', sub: skillsStatus.youtube?.available ? 'YouTube API Ready' : 'No API Key', cls: skillsStatus.youtube?.available ? 'success' : 'warn' },
-        { title: 'Weather', value: skillsStatus.weather?.available ? '✓' : '✗', sub: 'Yandex Weather', cls: skillsStatus.weather?.available ? 'success' : 'warn' },
+        { title: 'Weather', value: skillsStatus.weather?.available ? '✓' : '✗', sub: 'Open-Meteo API', cls: skillsStatus.weather?.available ? 'success' : 'warn' },
         { title: 'Web Search', value: skillsStatus.websearch?.available ? '✓' : '✗', sub: skillsStatus.websearch?.providers?.serpapi ? 'SerpAPI' : 'DuckDuckGo', cls: skillsStatus.websearch?.available ? 'success' : 'warn' },
-        { title: 'Finance', value: skillsStatus.finance?.available ? '✓' : '✗', sub: 'Stocks + Crypto', cls: skillsStatus.finance?.available ? 'success' : 'warn' },
+        { title: 'Finance', value: skillsStatus.finance?.available ? '✓' : '✗', sub: 'Finnhub + CoinGecko', cls: skillsStatus.finance?.available ? 'success' : 'warn' },
       ];
       document.getElementById('skills-cards').innerHTML = cards.map(c => `
         <div class="card ${c.cls}"><div class="card-header"><div class="card-title">${c.title}</div></div>

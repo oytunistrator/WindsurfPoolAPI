@@ -2,8 +2,8 @@
  * Finance/Stock Skill - Borsa ve Finans Verileri
  * 
  * Features:
- * - Canlı hisse senedi fiyatları
- * - Kripto para verileri
+ * - Canlı hisse senedi fiyatları (Finnhub API)
+ * - Kripto para verileri (CoinGecko)
  * - AI destekli piyasa yorumu
  * - Borsa endeksleri
  */
@@ -13,8 +13,8 @@ import { log } from '../../config.js';
 import { queryLocalLLM } from '../local-llm/ollama.js';
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
-const YAHOO_FINANCE_API = 'https://query1.finance.yahoo.com/v8/finance/chart';
-const ALPHA_VANTAGE_KEY = process.env.ALPHA_VANTAGE_KEY || '';
+const FINNHUB_API = 'https://finnhub.io/api/v1';
+const FINNHUB_KEY = process.env.FINNHUB_KEY || 'c09r7of48v6tvt4avm20'; // Free demo key (can be replaced with user's own key)
 
 class FinanceSkill {
   constructor() {
@@ -23,59 +23,74 @@ class FinanceSkill {
   }
 
   /**
-   * Get stock data from Yahoo Finance
+   * Get stock data from Finnhub API
    */
   async getStockData(symbol) {
-    const url = `${YAHOO_FINANCE_API}/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
-
+    // Get quote data
+    const quoteUrl = `${FINNHUB_API}/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_KEY}`;
+    
     return new Promise((resolve, reject) => {
-      https.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        timeout: 10000,
-      }, (res) => {
+      https.get(quoteUrl, { timeout: 10000 }, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
-        res.on('end', () => {
+        res.on('end', async () => {
           try {
-            const parsed = JSON.parse(data);
-            const result = parsed.chart?.result?.[0];
-            if (!result) {
-              reject(new Error('Stock data not found'));
+            const quote = JSON.parse(data);
+            if (quote.error) {
+              reject(new Error(quote.error));
               return;
             }
 
-            const meta = result.meta;
-            const timestamps = result.timestamp || [];
-            const prices = result.indicators?.quote?.[0]?.close || [];
-            
-            const currentPrice = meta.regularMarketPrice || prices[prices.length - 1];
-            const previousClose = meta.previousClose || prices[prices.length - 2] || currentPrice;
-            const change = currentPrice - previousClose;
-            const changePercent = (change / previousClose) * 100;
+            // Get company profile for name
+            const profileUrl = `${FINNHUB_API}/stock/profile2?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_KEY}`;
+            let companyName = symbol;
+            try {
+              const profileData = await this.fetchJSON(profileUrl);
+              companyName = profileData.name || symbol;
+            } catch (e) {
+              log.warn(`[FINANCE] Could not fetch company profile for ${symbol}`);
+            }
 
-            // Calculate day range
-            const dayHigh = meta.regularMarketDayHigh || Math.max(...prices.filter(p => p));
-            const dayLow = meta.regularMarketDayLow || Math.min(...prices.filter(p => p));
+            const currentPrice = quote.c; // Current price
+            const previousClose = quote.pc; // Previous close
+            const change = currentPrice - previousClose;
+            const changePercent = previousClose ? (change / previousClose) * 100 : 0;
 
             resolve({
-              symbol: meta.symbol || symbol,
-              name: meta.shortName || meta.longName || symbol,
-              currency: meta.currency,
+              symbol: symbol.toUpperCase(),
+              name: companyName,
+              currency: 'USD', // Finnhub default
               price: currentPrice,
               previousClose,
               change,
               changePercent,
-              dayHigh,
-              dayLow,
-              volume: meta.regularMarketVolume,
-              marketCap: meta.marketCap,
+              dayHigh: quote.h,
+              dayLow: quote.l,
+              volume: quote.v,
               timestamp: new Date().toISOString(),
-              provider: 'Yahoo Finance',
+              provider: 'Finnhub',
             });
           } catch (err) {
             reject(new Error('Failed to parse stock data'));
+          }
+        });
+      }).on('error', reject);
+    });
+  }
+
+  /**
+   * Helper to fetch JSON from URL
+   */
+  fetchJSON(url) {
+    return new Promise((resolve, reject) => {
+      https.get(url, { timeout: 10000 }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (err) {
+            reject(err);
           }
         });
       }).on('error', reject);

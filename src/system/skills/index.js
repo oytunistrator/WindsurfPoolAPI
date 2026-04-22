@@ -158,7 +158,7 @@ export function getSkillsStatus() {
     },
     finance: {
       available: true,
-      stockProvider: 'Yahoo Finance',
+      stockProvider: 'Finnhub API',
       cryptoProvider: 'CoinGecko',
       aiCommentary: true,
     },
