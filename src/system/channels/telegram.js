@@ -483,9 +483,22 @@ export async function initTelegramChannel() {
 
 // Get channel status
 export function getTelegramStatus() {
+  const chats = [];
+  for (const [chatId, chat] of telegramChannel.activeChats.entries()) {
+    chats.push({
+      chatId,
+      model: chat.settings?.model || config.defaultModel,
+      mode: chat.settings?.forceLocal ? 'Local LLM' : 'Cloud API',
+      messageCount: chat.context?.length || 0,
+      createdAt: chat.createdAt || Date.now(),
+    });
+  }
+  
   return {
     enabled: telegramChannel.enabled,
     activeChats: telegramChannel.activeChats.size,
     allowedChatIds: telegramChannel.allowedChatIds,
+    chats, // Detailed chat info for dashboard
+    botToken: telegramChannel.botToken ? '✓ Configured' : '✗ Not set',
   };
 }

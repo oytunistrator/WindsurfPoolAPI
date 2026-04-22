@@ -3252,24 +3252,41 @@ const App = {
   // ─── Telegram ────────────────────────────
   async loadTelegram() {
     try {
-      const status = await this.api('GET', '/system/telegram/status');
+      const response = await this.api('GET', '/system/telegram/status');
+      const status = response.status || {}; // API returns { success: true, status: {...} }
+      
       const cards = [
-        { title: 'Bot Status', value: status.enabled ? 'Online' : 'Offline', sub: status.enabled ? 'Polling active' : 'Disabled', cls: status.enabled ? 'success' : 'warn' },
-        { title: 'Active Chats', value: status.activeChats || 0, sub: 'conversations', cls: 'info' },
-        { title: 'Allowed IDs', value: status.allowedChatIds?.length || 'All', sub: 'whitelisted', cls: 'info' },
+        { title: 'Bot Status', value: status.enabled ? 'Online ✅' : 'Offline ❌', sub: status.enabled ? 'Polling active' : 'Bot not running', cls: status.enabled ? 'success' : 'error' },
+        { title: 'Bot Token', value: status.botToken || 'Not set', sub: 'API Configuration', cls: status.botToken?.includes('✓') ? 'success' : 'warn' },
+        { title: 'Active Chats', value: status.activeChats || 0, sub: 'conversations', cls: status.activeChats > 0 ? 'success' : 'info' },
+        { title: 'Allowed IDs', value: status.allowedChatIds?.length > 0 ? status.allowedChatIds.length : 'All', sub: 'whitelisted chats', cls: 'info' },
       ];
       document.getElementById('telegram-cards').innerHTML = cards.map(c => `
         <div class="card ${c.cls}"><div class="card-header"><div class="card-title">${c.title}</div></div>
-        <div class="card-value">${c.value}</div><div class="card-sub">${c.sub}</div></div>`).join('');
+        <div class="card-value" style="font-size:18px">${c.value}</div><div class="card-sub">${c.sub}</div></div>`).join('');
       
       document.getElementById('telegram-status').innerHTML = `
         <div class="kv-grid">
-          <div class="kv"><div class="k">Status</div><div class="v"><span class="badge ${status.enabled ? 'success' : 'error'}">${status.enabled ? 'Enabled' : 'Disabled'}</span></div></div>
+          <div class="kv"><div class="k">Bot Status</div><div class="v"><span class="badge ${status.enabled ? 'success' : 'error'}">${status.enabled ? 'Enabled ✅' : 'Disabled ❌'}</span></div></div>
+          <div class="kv"><div class="k">Bot Token</div><div class="v">${status.botToken || 'Not configured'}</div></div>
           <div class="kv"><div class="k">Active Chats</div><div class="v">${status.activeChats || 0}</div></div>
           <div class="kv"><div class="k">Allowed Chat IDs</div><div class="v">${status.allowedChatIds?.join(', ') || 'All chats allowed'}</div></div>
         </div>`;
       
-      // Chat list placeholder - would need additional API endpoint for detailed chat info
+      // Update Active Chats table
+      const tbody = document.querySelector('#telegram-chats-table tbody');
+      if (status.chats && status.chats.length > 0) {
+        tbody.innerHTML = status.chats.map(chat => `
+          <tr>
+            <td><code>${chat.chatId}</code></td>
+            <td>${chat.model}</td>
+            <td><span class="badge ${chat.mode === 'Local LLM' ? 'warn' : 'success'}">${chat.mode}</span></td>
+            <td>${chat.messageCount}</td>
+            <td>${new Date(chat.createdAt).toLocaleString()}</td>
+          </tr>`).join('');
+      } else {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No active chats</td></tr>';
+      }
       
       // Auto-refresh every 5 seconds when on this panel
       this.poll('telegram', () => this.loadTelegram(), 5000);
