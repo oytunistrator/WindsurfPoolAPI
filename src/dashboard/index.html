@@ -3341,7 +3341,10 @@ const App = {
         const messagesContainer = document.getElementById('telegram-messages-container');
         let messagesHtml = '';
         
+        console.log('[Dashboard] Processing chats for messages:', status.chats);
+        
         status.chats.forEach(chat => {
+          console.log(`[Dashboard] Chat ${chat.chatId} has ${chat.messages?.length || 0} messages`);
           if (chat.messages && chat.messages.length > 0) {
             messagesHtml += `
               <div style="margin-bottom:20px;padding:12px;background:var(--surface-2);border-radius:8px">
