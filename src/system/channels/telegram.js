@@ -381,13 +381,15 @@ class TelegramChannel {
     // Show typing indicator
     this.bot.sendChatAction(chatId, 'typing');
 
-    // Add user message to context
-    chat.context.push({ role: 'user', content: userMessage });
+    // Add user message to context with timestamp
+    chat.context.push({ role: 'user', content: userMessage, timestamp: new Date().toISOString() });
     
     // Keep only last 20 messages for context
     if (chat.context.length > 20) {
       chat.context = chat.context.slice(-20);
     }
+    
+    log.info(`[TELEGRAM] Chat ${chatId} context now has ${chat.context.length} messages`);
 
     log.info(`[TELEGRAM] Chat ${chatId}: ${userMessage.slice(0, 50)}...`);
 
@@ -409,9 +411,10 @@ class TelegramChannel {
         }
       }
 
-      // Add assistant response to context
+      // Add assistant response to context with timestamp
       if (response.content) {
-        chat.context.push({ role: 'assistant', content: response.content });
+        chat.context.push({ role: 'assistant', content: response.content, timestamp: new Date().toISOString() });
+        log.info(`[TELEGRAM] Chat ${chatId} - added assistant response, context now has ${chat.context.length} messages`);
       }
 
       // Send response to Telegram
@@ -503,7 +506,12 @@ export async function initTelegramChannel() {
 // Get channel status
 export function getTelegramStatus() {
   const chats = [];
+  log.info(`[TELEGRAM] getTelegramStatus called, activeChats: ${telegramChannel.activeChats.size}`);
+  
   for (const [chatId, chat] of telegramChannel.activeChats.entries()) {
+    const contextLength = chat.context?.length || 0;
+    log.info(`[TELEGRAM] Chat ${chatId} has ${contextLength} messages in context`);
+    
     // Get last 10 messages for preview
     const messages = (chat.context || []).slice(-10).map((msg, idx) => ({
       index: idx + 1,
@@ -512,11 +520,13 @@ export function getTelegramStatus() {
       timestamp: msg.timestamp || new Date().toISOString(),
     }));
     
+    log.info(`[TELEGRAM] Returning ${messages.length} messages for chat ${chatId}`);
+    
     chats.push({
       chatId,
       model: chat.settings?.model || config.defaultModel,
       mode: chat.settings?.forceLocal ? 'Local LLM' : 'Cloud API',
-      messageCount: chat.context?.length || 0,
+      messageCount: contextLength,
       createdAt: chat.createdAt || Date.now(),
       messages, // Last 10 messages for preview
     });
