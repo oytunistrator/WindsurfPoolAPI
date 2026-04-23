@@ -475,7 +475,7 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
           if (result.result?.formatted) {
             response = result.result.formatted;
             if (result.result.commentary) {
-              response += `\n\n🤖 **AI Yorumu:**\n${result.result.commentary}`;
+              response += `\n\n🤖 <b>AI Yorumu:</b>\n${this.escapeHtml(result.result.commentary)}`;
             }
           } else if (result.result?.summary) {
             response = result.result.summary;

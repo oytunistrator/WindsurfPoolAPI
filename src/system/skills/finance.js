@@ -256,12 +256,12 @@ class FinanceSkill {
    */
   formatFinanceData(data, type = 'stock', language = 'tr') {
     const isTR = language === 'tr';
-    
+
     if (type === 'stock') {
       const changeEmoji = data.change >= 0 ? '📈' : '📉';
-      return `${changeEmoji} **${data.name}** (${data.symbol})\n\n` +
-        `💰 Fiyat: **${data.price} ${data.currency}**\n` +
-        `📊 Değişim: **${data.changePercent > 0 ? '+' : ''}${data.changePercent?.toFixed(2)}%** ` +
+      return `${changeEmoji} <b>${data.name}</b> (${data.symbol})\n\n` +
+        `💰 Fiyat: <b>${data.price} ${data.currency}</b>\n` +
+        `📊 Değişim: <b>${data.changePercent > 0 ? '+' : ''}${data.changePercent?.toFixed(2)}%</b> ` +
         `(${data.change > 0 ? '+' : ''}${data.change?.toFixed(2)})\n` +
         `📈 Gün Aralığı: ${data.dayLow} - ${data.dayHigh}\n` +
         `📊 Hacim: ${data.volume?.toLocaleString()}\n` +
@@ -271,9 +271,9 @@ class FinanceSkill {
 
     if (type === 'crypto') {
       const changeEmoji = data.changePercent >= 0 ? '🚀' : '📉';
-      return `${changeEmoji} **${data.name}** (${data.symbol})\n\n` +
-        `💰 Fiyat: **$${data.price?.toLocaleString()}**\n` +
-        `📊 Değişim (24s): **${data.changePercent > 0 ? '+' : ''}${data.changePercent?.toFixed(2)}%**\n` +
+      return `${changeEmoji} <b>${data.name}</b> (${data.symbol})\n\n` +
+        `💰 Fiyat: <b>$${data.price?.toLocaleString()}</b>\n` +
+        `📊 Değişim (24s): <b>${data.changePercent > 0 ? '+' : ''}${data.changePercent?.toFixed(2)}%</b>\n` +
         `📈 24s Aralık: $${data.low24h} - $${data.high24h}\n` +
         `💎 Piyasa Değeri: $${(data.marketCap / 1e9).toFixed(2)}B\n` +
         `📊 24s Hacim: $${(data.volume24h / 1e6).toFixed(2)}M\n` +

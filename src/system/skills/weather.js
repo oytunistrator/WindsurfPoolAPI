@@ -137,44 +137,44 @@ class WeatherSkill {
    */
   formatWeather(data, format = 'text') {
     if (format === 'text') {
-      let text = `🌤 **${data.city}** Hava Durumu\n\n`;
-      
+      let text = `🌤 <b>${data.city}</b> Hava Durumu\n\n`;
+
       if (data.temperature !== null && data.temperature !== undefined) {
-        text += `🌡 Sıcaklık: **${data.temperature}°C**\n`;
+        text += `🌡 Sıcaklık: <b>${data.temperature}°C</b>\n`;
       }
-      
+
       if (data.description) {
         text += `☁️ Durum: ${data.description}\n`;
       }
-      
+
       if (data.humidity) {
         text += `💧 Nem: %${data.humidity}\n`;
       }
-      
+
       if (data.wind_speed) {
         text += `💨 Rüzgar: ${data.wind_speed} m/s\n`;
       }
-      
+
       if (data.feels_like) {
         text += `🤔 Hissedilen: ${data.feels_like}°C\n`;
       }
-      
+
       if (data.sunrise && data.sunset) {
         text += `🌅 Gün Doğumu: ${data.sunrise}\n`;
         text += `🌇 Gün Batımı: ${data.sunset}\n`;
       }
-      
+
       if (data.forecast && data.forecast.length > 0) {
         text += `\n📅 3 Günlük Tahmin:\n`;
         data.forecast.forEach(f => {
           text += `• ${f.day}: ${f.low}°C - ${f.high}°C, ${f.description}\n`;
         });
       }
-      
+
       if (data.country) {
         text += `\n🌍 ${data.city}, ${data.country}`;
       }
-      
+
       text += `\n📡 Kaynak: ${data.provider} (Ücretsiz API)`;
       return text;
     }
