@@ -88,7 +88,12 @@ class TelegramChannel {
         this.bot.sendChatAction(chatId, 'typing');
         try {
           const result = await this.executeCustomCommand(chatId, commandName, args);
-          this.bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+          // Special handling for models menu
+          if (result && typeof result === 'object' && result.action === 'showModelsMenu') {
+            await this.sendModelsMenu(chatId);
+          } else {
+            this.bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+          }
         } catch (err) {
           this.bot.sendMessage(chatId, `❌ Command error: ${err.message}`);
         }
@@ -157,9 +162,9 @@ Send me a message or use commands:
       },
       {
         name: 'models',
-        description: 'List all available AI models',
-        template: '{{modelsList}}',
-        action: 'listModels',
+        description: 'List all available AI models with buttons',
+        template: '🤖 Tüm AI modelleri aşağıda listeleniyor. Modeli seçmek için butona tıklayın:',
+        action: 'showModelsMenu',
       },
       {
         name: 'local',
@@ -296,6 +301,10 @@ Use /skills to see all available skills.`,
       case 'listModels':
         return this.formatModelsList();
 
+      case 'showModelsMenu':
+        // Special case - returns object for inline keyboard
+        return { action: 'showModelsMenu' };
+
       default:
         // For user-defined custom commands, execute the template
         return executeCommand(commandName, params);
@@ -333,6 +342,87 @@ Use /skills to see all available skills.`,
     text += `📌 <b>Örnek:</b> /model claude-3.5-sonnet`;
 
     return text;
+  }
+
+  /**
+   * Send models list with inline keyboard buttons
+   */
+  async sendModelsMenu(chatId) {
+    const models = Object.entries(MODELS);
+    const claudeModels = models.filter(([k, v]) => v.provider === 'anthropic');
+    const gptModels = models.filter(([k, v]) => v.provider === 'openai');
+
+    // Create inline keyboard - 2 buttons per row
+    const keyboard = [];
+    let row = [];
+
+    // Claude models
+    claudeModels.forEach(([key, model], index) => {
+      row.push({
+        text: `🟣 ${key.substring(0, 20)} (${model.credit})`,
+        callback_data: `select_model:${key}`
+      });
+      if (row.length === 2 || index === claudeModels.length - 1) {
+        keyboard.push([...row]);
+        row = [];
+      }
+    });
+
+    // GPT models
+    gptModels.forEach(([key, model], index) => {
+      row.push({
+        text: `🔵 ${key.substring(0, 20)} (${model.credit})`,
+        callback_data: `select_model:${key}`
+      });
+      if (row.length === 2 || index === gptModels.length - 1) {
+        keyboard.push([...row]);
+        row = [];
+      }
+    });
+
+    const opts = {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: keyboard
+      }
+    };
+
+    await this.bot.sendMessage(
+      chatId,
+      '🤖 <b>Tüm AI Modelleri</b>\n\nModel seçmek için butona tıklayın:\n\n🟣 = Claude (Anthropic)\n🔵 = GPT (OpenAI)',
+      opts
+    );
+  }
+
+  /**
+   * Handle callback queries from inline keyboards
+   */
+  async handleCallbackQuery(query) {
+    const chatId = query.message.chat.id;
+    const data = query.data;
+
+    if (data.startsWith('select_model:')) {
+      const modelName = data.replace('select_model:', '');
+      const chat = this.getOrCreateChat(chatId);
+      chat.settings.model = modelName;
+
+      // Answer callback to remove loading state
+      await this.bot.answerCallbackQuery(query.id, {
+        text: `✅ Model değiştirildi: ${modelName}`
+      });
+
+      // Edit message to show selection
+      await this.bot.editMessageText(
+        `🤖 <b>Model Seçildi</b>\n\n✅ Aktif model: <code>${modelName}</code>\n\nArtık bu modeli kullanarak sohbet edebilirsiniz.`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML'
+        }
+      );
+
+      log.info(`[TELEGRAM] User ${chatId} selected model: ${modelName}`);
+    }
   }
 
   /**
@@ -554,6 +644,15 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
 
       // Process as regular message
       await this.handleMessage(chatId, msg);
+    });
+
+    // Handle inline keyboard callbacks
+    this.bot.on('callback_query', async (query) => {
+      try {
+        await this.handleCallbackQuery(query);
+      } catch (err) {
+        log.error(`[TELEGRAM] Callback query error: ${err.message}`);
+      }
     });
   }
 
