@@ -15,6 +15,7 @@ import { queryLocalLLM } from '../local-llm/ollama.js';
 import { parseAndExecute, getSkillsHelp } from '../skills/index.js';
 import { customCommands, executeCommand, listCommands, addCommand, removeCommand, customCommands as commandsManager } from '../commands/custom-commands.js';
 import { executeCommand as executeBash } from '../bash/bash-executor.js';
+import { MODELS } from '../../models.js';
 
 // Dynamic import for node-telegram-bot-api (optional dependency)
 let TelegramBot;
@@ -108,7 +109,7 @@ class TelegramChannel {
    */
   initializeDefaultCommands() {
     // List of default command names that should be managed by the bot
-    const defaultCommandNames = ['start', 'reset', 'model', 'local', 'cloud', 'status', 'commands', 'help', 'skills'];
+    const defaultCommandNames = ['start', 'reset', 'model', 'models', 'local', 'cloud', 'status', 'commands', 'help', 'skills'];
     
     // Clear existing default commands first (to ensure fresh templates)
     log.info('[TELEGRAM] Clearing old default commands...');
@@ -153,6 +154,12 @@ Send me a message or use commands:
         template: '🔄 Model set to: {{model}}',
         parameters: [{ name: 'model', required: true, type: 'string' }],
         action: 'setModel',
+      },
+      {
+        name: 'models',
+        description: 'List all available AI models',
+        template: '{{modelsList}}',
+        action: 'listModels',
       },
       {
         name: 'local',
@@ -285,11 +292,47 @@ Use /skills to see all available skills.`,
       
       case 'skills':
         return getSkillsHelp();
-      
+
+      case 'listModels':
+        return this.formatModelsList();
+
       default:
         // For user-defined custom commands, execute the template
         return executeCommand(commandName, params);
     }
+  }
+
+  /**
+   * Format available models list for display
+   */
+  formatModelsList() {
+    const models = Object.entries(MODELS);
+    const claudeModels = models.filter(([k, v]) => v.provider === 'anthropic');
+    const gptModels = models.filter(([k, v]) => v.provider === 'openai');
+
+    let text = '🤖 <b>Mevcut AI Modelleri</b>\n\n';
+
+    text += '<b>🟣 Claude Modelleri (Anthropic):</b>\n';
+    claudeModels.slice(0, 15).forEach(([key, model]) => {
+      text += `• <code>${key}</code> (${model.credit} kredi)\n`;
+    });
+    if (claudeModels.length > 15) {
+      text += `• ... ve ${claudeModels.length - 15} model daha\n`;
+    }
+
+    text += '\n<b>🔵 GPT Modelleri (OpenAI):</b>\n';
+    gptModels.slice(0, 15).forEach(([key, model]) => {
+      text += `• <code>${key}</code> (${model.credit} kredi)\n`;
+    });
+    if (gptModels.length > 15) {
+      text += `• ... ve ${gptModels.length - 15} model daha\n`;
+    }
+
+    text += '\n💡 <b>Kullanım:</b> /model <i>model-adi</i>\n';
+    text += `📌 <b>Örnek:</b> /model gpt-4o-mini\n`;
+    text += `📌 <b>Örnek:</b> /model claude-3.5-sonnet`;
+
+    return text;
   }
 
   /**
