@@ -434,11 +434,11 @@ class FinanceSkill {
     } else if (type === 'indices') {
       data = await this.getIndices();
     } else if (type === 'market') {
-      data = await this.getPopularCrypto();
+      data = await this.getIndices(); // Market shows indices
     }
 
     const formatted = this.formatFinanceData(data, type, language);
-    
+
     let aiCommentary = '';
     if (commentary) {
       aiCommentary = await this.generateCommentary(data, { type, language, model });
