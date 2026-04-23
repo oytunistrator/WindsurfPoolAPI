@@ -28,7 +28,7 @@ import {
   getSystemStatus, getTelegramStatus, getOllamaStatus,
   listOllamaModels, pullOllamaModel, checkOllamaHealth,
   addCommand, removeCommand, listCommands, getCommand, executeCommand,
-  executeBash, getBashHistory, getBashStats, clearBashHistory,
+  executeBash, getBashHistory, getBashStats, clearBashHistory, getBashStatus,
   setWorkingDir, getWorkingDir,
   executeSkill, getSkillsInfo, getSkillsStatus,
   queryLocalLLM,
