@@ -562,11 +562,31 @@ Use /skills to see all available skills.`,
     this.bot.sendChatAction(chatId, 'typing');
     try {
       const result = await executeBash(cmd, { timeout: 15000 });
-      const output = result.stdout?.trim() || result.output?.trim() || '(çıktı yok)';
-      const text = `${label}\n<pre>${this.escapeHtml(output)}</pre>`;
-      this.bot.sendMessage(chatId, text, { parse_mode: 'HTML' });
+      let output = result.stdout?.trim() || result.output?.trim() || '(çıktı yok)';
+
+      // Truncate very long outputs
+      const MAX_OUTPUT = 3000;
+      if (output.length > MAX_OUTPUT) {
+        output = output.slice(0, MAX_OUTPUT) + '\n... [çıktı kısaltıldı]';
+      }
+
+      await this.sendLong(chatId, `${label}\n<pre>${this.escapeHtml(output)}</pre>`);
     } catch (err) {
       this.bot.sendMessage(chatId, `❌ Hata: ${this.escapeHtml(err.message)}`, { parse_mode: 'HTML' });
+    }
+  }
+
+  /**
+   * Send a potentially long HTML message, splitting if needed
+   */
+  async sendLong(chatId, html, maxLength = 4000) {
+    if (html.length <= maxLength) {
+      await this.bot.sendMessage(chatId, html, { parse_mode: 'HTML' });
+      return;
+    }
+    const chunks = this.splitMessage(html, maxLength);
+    for (const chunk of chunks) {
+      await this.bot.sendMessage(chatId, chunk, { parse_mode: 'HTML' });
     }
   }
 
@@ -740,7 +760,7 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
           } else {
             response = `<pre>${this.escapeHtml(JSON.stringify(r, null, 2))}</pre>`;
           }
-          this.bot.sendMessage(chatId, response, { parse_mode: 'HTML' });
+          await this.sendLong(chatId, response);
         } else {
           this.bot.sendMessage(chatId, '❌ Skill execution failed. Please try again.');
         }
@@ -858,17 +878,7 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
       // Send response to Telegram - convert AI markdown to Telegram HTML
       const replyText = response.content || 'No response generated.';
       const formattedText = this.markdownToTelegramHtml(replyText);
-
-      // Split long messages (Telegram limit is 4096 chars)
-      const MAX_LENGTH = 4000;
-      if (formattedText.length > MAX_LENGTH) {
-        const chunks = this.splitMessage(formattedText, MAX_LENGTH);
-        for (const chunk of chunks) {
-          await this.bot.sendMessage(chatId, chunk, { parse_mode: 'HTML' });
-        }
-      } else {
-        await this.bot.sendMessage(chatId, formattedText, { parse_mode: 'HTML' });
-      }
+      await this.sendLong(chatId, formattedText);
 
       log.info(`[TELEGRAM] Response sent to ${chatId}: ${replyText.slice(0, 50)}...`);
 
