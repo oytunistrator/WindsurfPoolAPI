@@ -460,10 +460,100 @@ Use /skills to see all available skills.`,
       case 'skills':
         this.bot.sendMessage(chatId, `🛠 <b>Available Skills:</b>\n\n${getSkillsHelp()}`, { parse_mode: 'HTML' });
         break;
-      
+
+      case 'whoami':
+        await this.runSystemCommand(chatId, 'whoami', '👤 Kullanıcı');
+        break;
+
+      case 'ip':
+        await this.runSystemCommand(chatId, "hostname -I | awk '{print $1}'", '🌐 IP Adresi');
+        break;
+
+      case 'uptime':
+        await this.runSystemCommand(chatId, 'uptime -p', '⏱ Çalışma Süresi');
+        break;
+
+      case 'disk':
+        await this.runSystemCommand(chatId, 'df -h --output=source,size,used,avail,pcent,target | head -20', '💾 Disk Kullanımı');
+        break;
+
+      case 'mem':
+      case 'memory':
+        await this.runSystemCommand(chatId, 'free -h', '🧠 Bellek Kullanımı');
+        break;
+
+      case 'cpu':
+        await this.runSystemCommand(chatId, "top -bn1 | grep 'Cpu(s)' | awk '{print $2+$4\"%\"}'", '⚙️ CPU Kullanımı');
+        break;
+
+      case 'ps':
+        await this.runSystemCommand(chatId, 'ps aux --no-headers --sort=-%cpu | head -10', '📋 Süreçler (Top 10)');
+        break;
+
+      case 'date':
+        await this.runSystemCommand(chatId, 'date', '📅 Tarih/Saat');
+        break;
+
+      case 'hostname':
+        await this.runSystemCommand(chatId, 'hostname', '🖥 Hostname');
+        break;
+
+      case 'os':
+        await this.runSystemCommand(chatId, 'uname -a && cat /etc/os-release 2>/dev/null | head -5', '🖥 Sistem Bilgisi');
+        break;
+
+      case 'ping':
+        if (!args.trim()) {
+          this.bot.sendMessage(chatId, '❌ Kullanım: /ping <host>\nÖrnek: /ping google.com');
+          break;
+        }
+        await this.runSystemCommand(chatId, `ping -c 4 ${args.trim().split(' ')[0]}`, `🏓 Ping → ${args.trim().split(' ')[0]}`);
+        break;
+
+      case 'netstat':
+      case 'ports':
+        await this.runSystemCommand(chatId, 'ss -tlnp | head -20', '🔌 Açık Portlar');
+        break;
+
+      case 'env':
+        await this.runSystemCommand(chatId, 'printenv | grep -v -i "token\\|key\\|secret\\|password\\|pass" | sort | head -30', '🌿 Ortam Değişkenleri');
+        break;
+
+      case 'logs':
+        await this.runSystemCommand(chatId, 'journalctl -n 20 --no-pager 2>/dev/null || tail -20 /var/log/syslog 2>/dev/null || echo "Log erişimi yok"', '📜 Sistem Logları');
+        break;
+
+      case 'node':
+        await this.runSystemCommand(chatId, 'node --version && npm --version', '📦 Node.js Versiyonu');
+        break;
+
+      case 'sysinfo':
+        await this.runSystemCommand(chatId,
+          'echo "=== Kullanıcı ===" && whoami && echo "=== OS ===" && uname -r && echo "=== Uptime ===" && uptime -p && echo "=== CPU ===" && nproc && echo "=== Bellek ===" && free -h | grep Mem && echo "=== Disk ===" && df -h / | tail -1',
+          '📊 Sistem Özeti');
+        break;
+
       default:
-        // Unknown command
-        this.bot.sendMessage(chatId, `❓ Unknown command: /${commandName}\nUse /commands to see available commands.`);
+        this.bot.sendMessage(chatId,
+          `❓ Bilinmeyen komut: <code>/${commandName}</code>\n\nMevcut sistem komutları:\n` +
+          `/whoami /ip /uptime /disk /mem /cpu /ps /date /hostname /os /ping /ports /env /node /sysinfo\n\n` +
+          `Diğer komutlar için: /commands`,
+          { parse_mode: 'HTML' });
+    }
+  }
+
+  /**
+   * Run a system command and send result to Telegram
+   */
+  async runSystemCommand(chatId, cmd, label = '💻 Sonuç') {
+    this.bot.sendChatAction(chatId, 'typing');
+    try {
+      const result = await executeBash(cmd, { timeout: 15000 });
+      const output = result.stdout?.trim() || result.output?.trim() || '(çıktı yok)';
+      const text = `${label}\n<pre>${this.escapeHtml(output)}</pre>`;
+      this.bot.sendMessage(chatId, text, { parse_mode: 'HTML' });
+    } catch (err) {
+      this.bot.sendMessage(chatId, `❌ Hata: ${this.escapeHtml(err.message)}`, { parse_mode: 'HTML' });
     }
   }
 
