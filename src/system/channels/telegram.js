@@ -546,13 +546,69 @@ Use /skills to see all available skills.`,
           '📊 Sistem Özeti');
         break;
 
-      default:
-        this.bot.sendMessage(chatId,
-          `❓ Bilinmeyen komut: <code>/${commandName}</code>\n\nMevcut sistem komutları:\n` +
-          `/whoami /ip /uptime /disk /mem /cpu /ps /date /hostname /os /ping /ports /env /node /sysinfo\n\n` +
-          `Diğer komutlar için: /commands`,
+      case 'tts':
+        if (!args.trim()) {
+          this.bot.sendMessage(chatId, '❌ Kullanım: /tts <metin>\nÖrnek: /tts Merhaba dünya', { parse_mode: 'HTML' });
+          break;
+        }
+        // TTS not available server-side; send back the text clearly formatted
+        await this.bot.sendMessage(chatId,
+          `🔊 <b>TTS:</b> <i>${this.escapeHtml(args.trim())}</i>\n\n⚠️ Sunucu taraflı TTS desteği henüz yok. Telegram'ın kendi sesli mesaj özelliğini kullanabilirsiniz.`,
           { parse_mode: 'HTML' });
+        break;
+
+      // Typo aliases
+      case 'skill':
+        this.bot.sendMessage(chatId, '💡 <code>/skill</code> → <code>/skills</code> demek istediniz mi?', { parse_mode: 'HTML' });
+        await this.bot.sendMessage(chatId, `🛠 <b>Mevcut Skill\'ler:</b>\n\n${getSkillsHelp()}`, { parse_mode: 'HTML' });
+        break;
+
+      case 'weather':
+      case 'search':
+      case 'stock':
+      case 'crypto':
+      case 'market':
+      case 'youtube':
+        // These are handled by setupSkillHandlers, should not reach here
+        break;
+
+      default: {
+        // Try to suggest similar commands
+        const allCmds = [
+          'start','reset','model','models','local','cloud','status','commands','help','skills',
+          'whoami','ip','uptime','disk','mem','cpu','ps','date','hostname','os','ping','ports','env','node','sysinfo','logs','tts',
+          'weather','stock','crypto','market','search','youtube','bash',
+        ];
+        const similar = allCmds.filter(c =>
+          c.startsWith(commandName.slice(0, 3)) || commandName.startsWith(c.slice(0, 3)) ||
+          this.levenshtein(c, commandName) <= 2
+        ).slice(0, 5);
+
+        let msg = `❓ Bilinmeyen komut: <code>/${commandName}</code>`;
+        if (similar.length) {
+          msg += `\n\n💡 Benzer komutlar: ${similar.map(c => `<code>/${c}</code>`).join(' ')}`;
+        }
+        msg += `\n\n📋 Tüm komutlar için: /commands\n🛠 Skill komutları için: /skills\n💻 Sistem komutları: /sysinfo`;
+        this.bot.sendMessage(chatId, msg, { parse_mode: 'HTML' });
+      }
     }
+  }
+
+  /**
+   * Simple Levenshtein distance for typo suggestions
+   */
+  levenshtein(a, b) {
+    const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+      Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+    );
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        dp[i][j] = a[i-1] === b[j-1]
+          ? dp[i-1][j-1]
+          : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+      }
+    }
+    return dp[a.length][b.length];
   }
 
   /**
