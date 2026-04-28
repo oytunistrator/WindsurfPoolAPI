@@ -72,10 +72,17 @@ class TelegramChannel {
     // Handle all custom commands dynamically
     this.bot.onText(/\/([a-zA-Z0-9_-]+)\s*(.*)/, async (msg, match) => {
       const chatId = msg.chat.id;
-      if (!this.isAuthorized(chatId)) return;
+      const username = msg.from?.username || msg.from?.first_name || 'unknown';
+
+      if (!this.isAuthorized(chatId)) {
+        log.warn(`[TELEGRAM] Unauthorized command attempt: /${match[1]} from chatId=${chatId} user=${username}`);
+        return;
+      }
 
       const commandName = match[1];
       const args = match[2] || '';
+
+      log.info(`[TELEGRAM] CMD /${commandName} chatId=${chatId} user=${username}${args ? ' args="' + args + '"' : ''}`);
 
       // Skip if it's a skill command (handled separately)
       if (['weather', 'search', 'stock', 'crypto', 'market', 'youtube'].includes(commandName)) {
@@ -84,12 +91,14 @@ class TelegramChannel {
 
       // /model with no args -> show models menu
       if (commandName === 'model' && !args.trim()) {
+        log.info(`[TELEGRAM] CMD /${commandName} -> showModelsMenu`);
         await this.sendModelsMenu(chatId);
         return;
       }
 
       // /models -> always show menu directly
       if (commandName === 'models') {
+        log.info(`[TELEGRAM] CMD /models -> showModelsMenu`);
         await this.sendModelsMenu(chatId);
         return;
       }
@@ -97,17 +106,21 @@ class TelegramChannel {
       // Check if it's a registered custom command
       const command = customCommands.getCommand(commandName);
       if (command) {
+      log.info(`[TELEGRAM] CMD /${commandName} -> customCommand`);
         this.bot.sendChatAction(chatId, 'typing');
         try {
           const result = await this.executeCustomCommand(chatId, commandName, args);
           this.bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+          log.info(`[TELEGRAM] CMD /${commandName} -> OK`);
         } catch (err) {
+          log.error(`[TELEGRAM] CMD /${commandName} -> ERROR: ${err.message}`);
           this.bot.sendMessage(chatId, `❌ Command error: ${err.message}`);
         }
         return;
       }
 
-      // Handle built-in commands that aren't in custom commands
+      // Handle built-in commands
+      log.info(`[TELEGRAM] CMD /${commandName} -> builtIn`);
       await this.handleBuiltInCommand(chatId, commandName, args, msg);
     });
 
@@ -691,7 +704,9 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
 
       const skillName = match[1];
       const args = match[2] || '';
+      const username = msg.from?.username || msg.from?.first_name || 'unknown';
 
+      log.info(`[TELEGRAM] SKILL /${skillName} chatId=${chatId} user=${username}${args ? ' args="' + args + '"' : ''}`);
       this.bot.sendChatAction(chatId, 'typing');
 
       try {
@@ -730,7 +745,7 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
           this.bot.sendMessage(chatId, '❌ Skill execution failed. Please try again.');
         }
       } catch (err) {
-        log.error(`[TELEGRAM] Skill ${skillName} failed:`, err.message);
+        log.error(`[TELEGRAM] SKILL /${skillName} ERROR: ${err.message}`);
         this.bot.sendMessage(chatId, `❌ Error: ${err.message}`);
       }
     });
@@ -739,17 +754,24 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
     this.bot.on('message', async (msg) => {
       // Skip commands
       if (msg.text?.startsWith('/')) return;
-      
+
       const chatId = msg.chat.id;
+      const username = msg.from?.username || msg.from?.first_name || 'unknown';
+
       if (!this.isAuthorized(chatId)) {
+        log.warn(`[TELEGRAM] Unauthorized message from chatId=${chatId} user=${username}`);
         this.bot.sendMessage(chatId, 'Unauthorized. Chat ID: ' + chatId);
         return;
       }
 
+      const preview = (msg.text || '').slice(0, 80).replace(/\n/g, ' ');
+      log.info(`[TELEGRAM] MSG chatId=${chatId} user=${username} text="${preview}"`);
+
       // Check for bash confirmation first
       const isBashConfirmation = await this.handleBashConfirmation(chatId, msg.text);
       if (isBashConfirmation) {
-        return; // Message was handled as bash confirmation
+        log.info(`[TELEGRAM] MSG chatId=${chatId} -> bashConfirmation handled`);
+        return;
       }
 
       // Process as regular message
