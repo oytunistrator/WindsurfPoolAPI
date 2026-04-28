@@ -1,7 +1,9 @@
 services:
   windsurfapi:
-    build: .
-    image: windsurfapi:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: windsurfapi:local
     container_name: windsurfapi
     restart: unless-stopped
     ports:
