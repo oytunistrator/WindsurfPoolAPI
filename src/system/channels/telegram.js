@@ -82,18 +82,25 @@ class TelegramChannel {
         return; // Let the skill handler process it
       }
 
+      // /model with no args -> show models menu
+      if (commandName === 'model' && !args.trim()) {
+        await this.sendModelsMenu(chatId);
+        return;
+      }
+
+      // /models -> always show menu directly
+      if (commandName === 'models') {
+        await this.sendModelsMenu(chatId);
+        return;
+      }
+
       // Check if it's a registered custom command
       const command = customCommands.getCommand(commandName);
       if (command) {
         this.bot.sendChatAction(chatId, 'typing');
         try {
           const result = await this.executeCustomCommand(chatId, commandName, args);
-          // Special handling for models menu
-          if (result && typeof result === 'object' && result.action === 'showModelsMenu') {
-            await this.sendModelsMenu(chatId);
-          } else {
-            this.bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
-          }
+          this.bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
         } catch (err) {
           this.bot.sendMessage(chatId, `❌ Command error: ${err.message}`);
         }
@@ -266,7 +273,7 @@ Use /skills to see all available skills.`,
         return command.template;
       
       case 'model':
-        if (!params.model) throw new Error('Model name required');
+        if (!params.model) return { action: 'showModelsMenu' };
         chat.settings.model = params.model;
         return command.template.replace('{{model}}', params.model);
       
@@ -300,10 +307,6 @@ Use /skills to see all available skills.`,
 
       case 'listModels':
         return this.formatModelsList();
-
-      case 'showModelsMenu':
-        // Special case - returns object for inline keyboard
-        return { action: 'showModelsMenu' };
 
       default:
         // For user-defined custom commands, execute the template
@@ -723,18 +726,19 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
         log.info(`[TELEGRAM] Chat ${chatId} - added assistant response, context now has ${chat.context.length} messages`);
       }
 
-      // Send response to Telegram
+      // Send response to Telegram - convert AI markdown to Telegram HTML
       const replyText = response.content || 'No response generated.';
-      
+      const formattedText = this.markdownToTelegramHtml(replyText);
+
       // Split long messages (Telegram limit is 4096 chars)
       const MAX_LENGTH = 4000;
-      if (replyText.length > MAX_LENGTH) {
-        const chunks = this.splitMessage(replyText, MAX_LENGTH);
+      if (formattedText.length > MAX_LENGTH) {
+        const chunks = this.splitMessage(formattedText, MAX_LENGTH);
         for (const chunk of chunks) {
-          await this.bot.sendMessage(chatId, this.escapeHtml(chunk));
+          await this.bot.sendMessage(chatId, chunk, { parse_mode: 'HTML' });
         }
       } else {
-        await this.bot.sendMessage(chatId, this.escapeHtml(replyText));
+        await this.bot.sendMessage(chatId, formattedText, { parse_mode: 'HTML' });
       }
 
       log.info(`[TELEGRAM] Response sent to ${chatId}: ${replyText.slice(0, 50)}...`);
@@ -786,6 +790,59 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  /**
+   * Convert AI Markdown response to Telegram-compatible HTML
+   * Telegram HTML supports: <b>, <i>, <u>, <s>, <code>, <pre>, <a>
+   */
+  markdownToTelegramHtml(text) {
+    if (!text) return '';
+
+    // First escape HTML special chars (except we need to handle markdown first)
+    // Process code blocks BEFORE escaping to protect their content
+    const codeBlocks = [];
+    let processed = text;
+
+    // Extract fenced code blocks ```lang\ncode```
+    processed = processed.replace(/```([a-zA-Z]*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+      const idx = codeBlocks.length;
+      codeBlocks.push(`<pre><code>${this.escapeHtml(code.trim())}</code></pre>`);
+      return `\x00CODE${idx}\x00`;
+    });
+
+    // Extract inline code `code`
+    processed = processed.replace(/`([^`\n]+)`/g, (_, code) => {
+      const idx = codeBlocks.length;
+      codeBlocks.push(`<code>${this.escapeHtml(code)}</code>`);
+      return `\x00CODE${idx}\x00`;
+    });
+
+    // Escape remaining HTML
+    processed = this.escapeHtml(processed);
+
+    // Convert markdown formatting to Telegram HTML
+    // Bold: **text** or __text__
+    processed = processed.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    processed = processed.replace(/__(.+?)__/g, '<b>$1</b>');
+
+    // Italic: *text* or _text_  (single, not double)
+    processed = processed.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<i>$1</i>');
+    processed = processed.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<i>$1</i>');
+
+    // Strikethrough: ~~text~~
+    processed = processed.replace(/~~(.+?)~~/g, '<s>$1</s>');
+
+    // Headers: # ## ### -> <b>text</b> with newline
+    processed = processed.replace(/^#{1,6}\s+(.+)$/gm, '<b>$1</b>');
+
+    // Horizontal rules: --- or *** -> just a line
+    processed = processed.replace(/^[-*]{3,}$/gm, '──────────');
+
+    // Restore code blocks
+    processed = processed.replace(/\x00CODE(\d+)\x00/g, (_, idx) => codeBlocks[parseInt(idx)]);
+
+    return processed;
   }
 
   splitMessage(text, maxLength) {
