@@ -10,7 +10,7 @@ RUN npm install --omit=dev --no-audit --no-fund
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 FROM node:20-alpine
 
-LABEL maintainer="WindsurfPoolAPI"
+LABEL maintainer="Oytun"
 LABEL version="2.0.3"
 
 # Non-root user
