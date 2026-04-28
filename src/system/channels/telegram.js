@@ -618,12 +618,14 @@ Use /skills to see all available skills.`,
   }
 
   /**
-   * Validate nmap scan target against allowlist and block localhost/private abuse
-   * Returns an error string if invalid, null if OK
+   * Validate nmap scan target against blocklist.
+   * localhost + private ranges are always blocked.
+   * Additional blocks via SCAN_BLOCKED_TARGETS env var.
+   * Returns an error string if blocked, null if OK.
    */
   validateScanTarget(target, cmdName) {
     if (!target) {
-      return `❌ Kullanım: <code>/${cmdName} &lt;ip veya hostname&gt;</code>\nÖrnek: /${cmdName} 192.168.1.1`;
+      return `❌ Kullanım: <code>/${cmdName} &lt;ip veya hostname&gt;</code>\nÖrnek: /${cmdName} 93.184.216.34`;
     }
 
     // Block shell injection characters
@@ -631,45 +633,34 @@ Use /skills to see all available skills.`,
       return `⛔ Geçersiz hedef: özel karakterler kullanılamaz.`;
     }
 
-    // Block localhost / loopback
-    const localhostPatterns = [
+    // Always-blocked: localhost, loopback, private ranges
+    const alwaysBlocked = [
       /^localhost$/i,
-      /^127\.\d+\.\d+\.\d+$/,
+      /^127\.\d+\.\d+\.\d+$/,          // 127.x.x.x
       /^::1$/,
       /^0\.0\.0\.0$/,
+      /^10\.\d+\.\d+\.\d+$/,           // 10.x.x.x
+      /^192\.168\.\d+\.\d+$/,          // 192.168.x.x
+      /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/,  // 172.16-31.x.x
+      /^169\.254\.\d+\.\d+$/,          // link-local
+      /^fc[0-9a-f]{2}:/i,              // IPv6 ULA
     ];
-    if (localhostPatterns.some(p => p.test(target))) {
-      return `⛔ localhost taraması engellendi.`;
+    if (alwaysBlocked.some(p => p.test(target))) {
+      return `⛔ <b>${this.escapeHtml(target)}</b> — localhost ve özel (private) ağ adresleri taranamaز.`;
     }
 
-    // Check allowlist from env
-    const allowedRaw = (process.env.SCAN_ALLOWED_TARGETS || '').trim();
-    if (!allowedRaw) {
-      return `⛔ Tarama hedefleri tanımlanmamış.\n<code>SCAN_ALLOWED_TARGETS</code> ortam değişkenini ayarlayın.\nÖrnek: <code>SCAN_ALLOWED_TARGETS=192.168.1.0/24,10.0.0.5</code>`;
-    }
-
-    const allowed = allowedRaw.split(',').map(s => s.trim()).filter(Boolean);
-
-    // Check if target matches or is within any allowed entry
-    const isAllowed = allowed.some(entry => {
-      // Exact match or CIDR prefix match (simple check)
-      if (target === entry) return true;
-      // Hostname prefix / wildcard *.example.com
-      if (entry.startsWith('*.') && target.endsWith(entry.slice(1))) return true;
-      // CIDR: check if target starts with the network prefix (basic)
-      if (entry.includes('/')) {
-        const [network] = entry.split('/');
-        const networkParts = network.split('.');
-        const targetParts = target.split('.');
-        const prefix = parseInt(entry.split('/')[1], 10);
-        const octets = Math.floor(prefix / 8);
-        return networkParts.slice(0, octets).join('.') === targetParts.slice(0, octets).join('.');
+    // Additional blocklist from env
+    const blockedRaw = (process.env.SCAN_BLOCKED_TARGETS || '').trim();
+    if (blockedRaw) {
+      const blocked = blockedRaw.split(',').map(s => s.trim()).filter(Boolean);
+      const isBlocked = blocked.some(entry => {
+        if (target === entry) return true;
+        if (entry.startsWith('*.') && target.endsWith(entry.slice(1))) return true;
+        return false;
+      });
+      if (isBlocked) {
+        return `⛔ <b>${this.escapeHtml(target)}</b> engellenen hedefler listesinde.`;
       }
-      return false;
-    });
-
-    if (!isAllowed) {
-      return `⛔ <b>${this.escapeHtml(target)}</b> izin verilen hedefler listesinde değil.\n\nİzinli hedefler: <code>${this.escapeHtml(allowed.join(', '))}</code>`;
     }
 
     return null; // OK
