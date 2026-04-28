@@ -608,18 +608,32 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
         const result = await parseAndExecute(`/${skillName} ${args}`);
         if (result && result.success) {
           let response = '';
-          if (typeof result.result === 'string') {
-            // Weather and some skills return a plain string
-            response = result.result;
-          } else if (result.result?.formatted) {
-            response = result.result.formatted;
-            if (result.result.commentary) {
-              response += `\n\n🤖 <b>AI Yorumu:</b>\n${this.escapeHtml(result.result.commentary)}`;
+          const r = result.result;
+
+          if (typeof r === 'string') {
+            // Weather returns a plain HTML string (already has <b> tags + real newlines)
+            response = r;
+          } else if (r?.formatted) {
+            // Finance / YouTube - formatted is already HTML
+            response = r.formatted;
+            // Append AI commentary converting its markdown
+            if (r.commentary) {
+              response += `\n\n🤖 <b>AI Yorumu:</b>\n${this.markdownToTelegramHtml(r.commentary)}`;
             }
-          } else if (result.result?.summary) {
-            response = result.result.summary;
+            if (r.analysis) {
+              response += `\n\n🤖 <b>AI Analizi:</b>\n${this.markdownToTelegramHtml(r.analysis)}`;
+            }
+          } else if (r?.summary) {
+            // Web search returns AI-generated markdown summary
+            response = this.markdownToTelegramHtml(r.summary);
+            if (r.results?.length) {
+              response += `\n\n📎 <b>Kaynaklar:</b>`;
+              r.results.slice(0, 3).forEach((res, i) => {
+                response += `\n${i + 1}. <a href="${res.url}">${this.escapeHtml(res.title)}</a>`;
+              });
+            }
           } else {
-            response = `<pre>${this.escapeHtml(JSON.stringify(result.result, null, 2))}</pre>`;
+            response = `<pre>${this.escapeHtml(JSON.stringify(r, null, 2))}</pre>`;
           }
           this.bot.sendMessage(chatId, response, { parse_mode: 'HTML' });
         } else {
