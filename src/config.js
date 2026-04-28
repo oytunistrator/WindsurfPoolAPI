@@ -1,5 +1,5 @@
-import { readFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { readFileSync, existsSync, appendFileSync, mkdirSync } from 'fs';
+import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -74,9 +74,25 @@ export const config = {
 const levels = { debug: 0, info: 1, warn: 2, error: 3 };
 const currentLevel = levels[config.logLevel] ?? 1;
 
+
+const LOG_DIR = join(process.cwd(), 'logs');
+const LOG_FILE = join(LOG_DIR, 'app.log');
+
+try { mkdirSync(LOG_DIR, { recursive: true }); } catch {}
+
+function ts() {
+  return new Date().toISOString().replace('T', ' ').slice(0, 19);
+}
+
+function writeLog(level, args) {
+  const line = `[${ts()}] [${level}] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`;
+  try { appendFileSync(LOG_FILE, line); } catch {}
+  return line.trimEnd();
+}
+
 export const log = {
-  debug: (...args) => currentLevel <= 0 && console.log('[DEBUG]', ...args),
-  info: (...args) => currentLevel <= 1 && console.log('[INFO]', ...args),
-  warn: (...args) => currentLevel <= 2 && console.warn('[WARN]', ...args),
-  error: (...args) => currentLevel <= 3 && console.error('[ERROR]', ...args),
+  debug: (...args) => { if (currentLevel <= 0) console.log(writeLog('DEBUG', args)); },
+  info:  (...args) => { if (currentLevel <= 1) console.log(writeLog('INFO',  args)); },
+  warn:  (...args) => { if (currentLevel <= 2) console.warn(writeLog('WARN',  args)); },
+  error: (...args) => { if (currentLevel <= 3) console.error(writeLog('ERROR', args)); },
 };

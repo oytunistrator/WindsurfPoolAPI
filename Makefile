@@ -56,6 +56,12 @@ clean: down ## Container + imajı sil
 	docker rmi $(IMAGE) 2>/dev/null || true
 	@echo "✅ Temizlendi"
 
+tail: ## Uygulama log dosyasını canlı izle (logs/app.log)
+	@tail -f logs/app.log 2>/dev/null || echo "❌ logs/app.log bulunamadı — uygulama başlatılmamış olabilir"
+
+tail-cmd: ## Sadece TELEGRAM komut loglarını filtrele
+	@tail -f logs/app.log 2>/dev/null | grep --line-buffered '\[TELEGRAM\]' || echo "❌ logs/app.log yok"
+
 clean-logs: ## Log dosyalarını temizle
 	@rm -rf logs/*.log logs/**/*.log 2>/dev/null; echo "✅ Loglar temizlendi"
 
