@@ -552,7 +552,7 @@ Use /skills to see all available skills.`,
         if (scanErr) { this.bot.sendMessage(chatId, scanErr, { parse_mode: 'HTML' }); break; }
         this.bot.sendMessage(chatId, `🔍 Port taraması başlatılıyor: <code>${this.escapeHtml(target)}</code>\n⏳ Bu işlem birkaç dakika sürebilir...`, { parse_mode: 'HTML' });
         await this.runSystemCommand(chatId,
-          `nmap -sV --open -T4 --host-timeout 120s ${target}`,
+          `nmap -Pn -sV --open -T4 --host-timeout 120s ${target}`,
           `🔍 Port Tarama: ${target}`);
         break;
       }
@@ -563,7 +563,7 @@ Use /skills to see all available skills.`,
         if (scanErr) { this.bot.sendMessage(chatId, scanErr, { parse_mode: 'HTML' }); break; }
         this.bot.sendMessage(chatId, `🖥 OS tespiti başlatılıyor: <code>${this.escapeHtml(target)}</code>\n⏳ Bu işlem birkaç dakika sürebilir...`, { parse_mode: 'HTML' });
         await this.runSystemCommand(chatId,
-          `nmap -O --osscan-guess -T4 --host-timeout 120s ${target} 2>&1 || nmap -sV -T4 --host-timeout 120s ${target}`,
+          `nmap -Pn -O --osscan-guess -T4 --host-timeout 120s ${target} 2>&1 || nmap -Pn -sV -T4 --host-timeout 120s ${target}`,
           `🖥 OS Tarama: ${target}`);
         break;
       }
