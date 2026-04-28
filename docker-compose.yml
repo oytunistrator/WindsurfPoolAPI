@@ -6,20 +6,39 @@ services:
     restart: unless-stopped
     ports:
       - "3003:3003"
+    env_file:
+      - .env
     environment:
       PORT: 3003
       LS_PORT: 42100
       LS_BINARY_PATH: /opt/windsurf/language_server_linux_x64
-      DEFAULT_MODEL: gpt-4o-mini
-      MAX_TOKENS: 8192
-      LOG_LEVEL: info
-      # Set a password to protect the dashboard. Leave empty for open access.
-      DASHBOARD_PASSWORD: ""
-      # Optional — require an API key for /v1/* endpoints.
-      API_KEY: ""
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-claude-4.5-sonnet-thinking}
+      MAX_TOKENS: ${MAX_TOKENS:-8192}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:-}
+      API_KEY: ${API_KEY:-}
+      # Windsurf Auth
+      CODEIUM_API_KEY: ${CODEIUM_API_KEY:-}
+      CODEIUM_AUTH_TOKEN: ${CODEIUM_AUTH_TOKEN:-}
+      # Telegram
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_ALLOWED_CHAT_IDS: ${TELEGRAM_ALLOWED_CHAT_IDS:-}
+      # Ollama - container içinden host makineye erişim
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      OLLAMA_DEFAULT_MODEL: ${OLLAMA_DEFAULT_MODEL:-llama3.2}
+      # Skills
+      DEFAULT_CITY: ${DEFAULT_CITY:-Istanbul}
+      DEFAULT_COUNTRY: ${DEFAULT_COUNTRY:-TR}
+      SERPAPI_KEY: ${SERPAPI_KEY:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      FINNHUB_KEY: ${FINNHUB_KEY:-}
+      # Bash
+      ALLOWED_BASH_COMMANDS: ${ALLOWED_BASH_COMMANDS:-}
+      BLOCKED_BASH_COMMANDS: ${BLOCKED_BASH_COMMANDS:-rm,mv,dd,fdisk,mkfs,shutdown,reboot,halt}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
-      # Mount the Windsurf Language Server binary from the host. The binary is
-      # closed-source Windsurf and cannot be baked into the image.
+      # Mount the Windsurf Language Server binary from the host.
       - /opt/windsurf:/opt/windsurf:ro
       # Persist runtime state across container restarts.
       - ./accounts.json:/app/accounts.json
@@ -28,6 +47,7 @@ services:
       - ./proxy-config.json:/app/proxy-config.json
       - ./model-access.json:/app/model-access.json
       - ./logs:/app/logs
+      - ./data:/app/data
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3003/health"]
       interval: 30s
