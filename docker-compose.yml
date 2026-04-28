@@ -37,6 +37,8 @@ services:
       # Bash
       ALLOWED_BASH_COMMANDS: ${ALLOWED_BASH_COMMANDS:-}
       BLOCKED_BASH_COMMANDS: ${BLOCKED_BASH_COMMANDS:-rm,mv,dd,fdisk,mkfs,shutdown,reboot,halt}
+      # Network Scan (nmap) - sadece izinli hedefler
+      SCAN_ALLOWED_TARGETS: ${SCAN_ALLOWED_TARGETS:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

@@ -546,6 +546,28 @@ Use /skills to see all available skills.`,
           '📊 Sistem Özeti');
         break;
 
+      case 'portscan': {
+        const target = args.trim().split(' ')[0];
+        const scanErr = this.validateScanTarget(target, 'portscan');
+        if (scanErr) { this.bot.sendMessage(chatId, scanErr, { parse_mode: 'HTML' }); break; }
+        this.bot.sendMessage(chatId, `🔍 Port taraması başlatılıyor: <code>${this.escapeHtml(target)}</code>\n⏳ Bu işlem birkaç dakika sürebilir...`, { parse_mode: 'HTML' });
+        await this.runSystemCommand(chatId,
+          `nmap -sV --open -T4 --host-timeout 120s ${target}`,
+          `🔍 Port Tarama: ${target}`);
+        break;
+      }
+
+      case 'osscan': {
+        const target = args.trim().split(' ')[0];
+        const scanErr = this.validateScanTarget(target, 'osscan');
+        if (scanErr) { this.bot.sendMessage(chatId, scanErr, { parse_mode: 'HTML' }); break; }
+        this.bot.sendMessage(chatId, `🖥 OS tespiti başlatılıyor: <code>${this.escapeHtml(target)}</code>\n⏳ Bu işlem birkaç dakika sürebilir...`, { parse_mode: 'HTML' });
+        await this.runSystemCommand(chatId,
+          `nmap -O --osscan-guess -T4 --host-timeout 120s ${target} 2>&1 || nmap -sV -T4 --host-timeout 120s ${target}`,
+          `🖥 OS Tarama: ${target}`);
+        break;
+      }
+
       case 'tts':
         if (!args.trim()) {
           this.bot.sendMessage(chatId, '❌ Kullanım: /tts <metin>\nÖrnek: /tts Merhaba dünya', { parse_mode: 'HTML' });
@@ -578,6 +600,7 @@ Use /skills to see all available skills.`,
           'start','reset','model','models','local','cloud','status','commands','help','skills',
           'whoami','ip','uptime','disk','mem','cpu','ps','date','hostname','os','ping','ports','env','node','sysinfo','logs','tts',
           'weather','stock','crypto','market','search','youtube','bash',
+          'portscan','osscan',
         ];
         const similar = allCmds.filter(c =>
           c.startsWith(commandName.slice(0, 3)) || commandName.startsWith(c.slice(0, 3)) ||
@@ -592,6 +615,64 @@ Use /skills to see all available skills.`,
         this.bot.sendMessage(chatId, msg, { parse_mode: 'HTML' });
       }
     }
+  }
+
+  /**
+   * Validate nmap scan target against allowlist and block localhost/private abuse
+   * Returns an error string if invalid, null if OK
+   */
+  validateScanTarget(target, cmdName) {
+    if (!target) {
+      return `❌ Kullanım: <code>/${cmdName} &lt;ip veya hostname&gt;</code>\nÖrnek: /${cmdName} 192.168.1.1`;
+    }
+
+    // Block shell injection characters
+    if (/[;&|`$(){}<>!\\]/.test(target)) {
+      return `⛔ Geçersiz hedef: özel karakterler kullanılamaz.`;
+    }
+
+    // Block localhost / loopback
+    const localhostPatterns = [
+      /^localhost$/i,
+      /^127\.\d+\.\d+\.\d+$/,
+      /^::1$/,
+      /^0\.0\.0\.0$/,
+    ];
+    if (localhostPatterns.some(p => p.test(target))) {
+      return `⛔ localhost taraması engellendi.`;
+    }
+
+    // Check allowlist from env
+    const allowedRaw = (process.env.SCAN_ALLOWED_TARGETS || '').trim();
+    if (!allowedRaw) {
+      return `⛔ Tarama hedefleri tanımlanmamış.\n<code>SCAN_ALLOWED_TARGETS</code> ortam değişkenini ayarlayın.\nÖrnek: <code>SCAN_ALLOWED_TARGETS=192.168.1.0/24,10.0.0.5</code>`;
+    }
+
+    const allowed = allowedRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+    // Check if target matches or is within any allowed entry
+    const isAllowed = allowed.some(entry => {
+      // Exact match or CIDR prefix match (simple check)
+      if (target === entry) return true;
+      // Hostname prefix / wildcard *.example.com
+      if (entry.startsWith('*.') && target.endsWith(entry.slice(1))) return true;
+      // CIDR: check if target starts with the network prefix (basic)
+      if (entry.includes('/')) {
+        const [network] = entry.split('/');
+        const networkParts = network.split('.');
+        const targetParts = target.split('.');
+        const prefix = parseInt(entry.split('/')[1], 10);
+        const octets = Math.floor(prefix / 8);
+        return networkParts.slice(0, octets).join('.') === targetParts.slice(0, octets).join('.');
+      }
+      return false;
+    });
+
+    if (!isAllowed) {
+      return `⛔ <b>${this.escapeHtml(target)}</b> izin verilen hedefler listesinde değil.\n\nİzinli hedefler: <code>${this.escapeHtml(allowed.join(', '))}</code>`;
+    }
+
+    return null; // OK
   }
 
   /**
