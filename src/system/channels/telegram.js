@@ -922,7 +922,7 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
         return;
       }
 
-      // Process as regular message
+      // Process as regular message (getOrCreateChat will capture username inside handleMessage)
       await this.handleMessage(chatId, msg);
     });
 
@@ -941,7 +941,7 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
     return this.allowedChatIds.includes(String(chatId));
   }
 
-  getOrCreateChat(chatId) {
+  getOrCreateChat(chatId, msg = null) {
     if (!this.activeChats.has(chatId)) {
       this.activeChats.set(chatId, {
         context: [],
@@ -950,13 +950,21 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
           forceLocal: false,
         },
         createdAt: Date.now(),
+        username: null,
+        firstName: null,
       });
     }
-    return this.activeChats.get(chatId);
+    const chat = this.activeChats.get(chatId);
+    // Update username if provided via message
+    if (msg?.from) {
+      chat.username = msg.from.username || null;
+      chat.firstName = msg.from.first_name || null;
+    }
+    return chat;
   }
 
   async handleMessage(chatId, msg) {
-    const chat = this.getOrCreateChat(chatId);
+    const chat = this.getOrCreateChat(chatId, msg);
     const userMessage = msg.text || '';
 
     if (!userMessage.trim()) {
@@ -1164,13 +1172,20 @@ export function getTelegramStatus() {
     
     log.info(`[TELEGRAM] Returning ${messages.length} messages for chat ${chatId}`);
     
+    const displayName = chat.username
+      ? `@${chat.username}`
+      : (chat.firstName || `Chat ${chatId}`);
+
     chats.push({
       chatId,
+      username: chat.username || null,
+      firstName: chat.firstName || null,
+      displayName,
       model: chat.settings?.model || config.defaultModel,
       mode: chat.settings?.forceLocal ? 'Local LLM' : 'Cloud API',
       messageCount: contextLength,
       createdAt: chat.createdAt || Date.now(),
-      messages, // Last 10 messages for preview
+      messages,
     });
   }
   
