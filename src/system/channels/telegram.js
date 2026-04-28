@@ -608,7 +608,10 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
         const result = await parseAndExecute(`/${skillName} ${args}`);
         if (result && result.success) {
           let response = '';
-          if (result.result?.formatted) {
+          if (typeof result.result === 'string') {
+            // Weather and some skills return a plain string
+            response = result.result;
+          } else if (result.result?.formatted) {
             response = result.result.formatted;
             if (result.result.commentary) {
               response += `\n\n🤖 <b>AI Yorumu:</b>\n${this.escapeHtml(result.result.commentary)}`;
@@ -616,7 +619,7 @@ If the request is unsafe or could be destructive, respond with: UNSAFE: <reason>
           } else if (result.result?.summary) {
             response = result.result.summary;
           } else {
-            response = JSON.stringify(result.result, null, 2);
+            response = `<pre>${this.escapeHtml(JSON.stringify(result.result, null, 2))}</pre>`;
           }
           this.bot.sendMessage(chatId, response, { parse_mode: 'HTML' });
         } else {
